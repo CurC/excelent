@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 187bab4747f339ac232e6ac5b8a46fd2119225cc8450f41216f6ffb7778ea568
+-- hash: d01fe0a0d09e13c8ac8c6af46c395a38ef7b31506e86adadda2448d3355da5a2
 
 name:           excelent
 version:        0.1.0.0
@@ -27,6 +27,7 @@ source-repository head
 
 library
   exposed-modules:
+      Data
       Lib
   other-modules:
       Paths_excelent
@@ -34,6 +35,7 @@ library
       src
   build-depends:
       base >=4.7 && <5
+    , containers
   default-language: Haskell2010
 
 executable excelent-exe
