@@ -26,7 +26,9 @@ library:
   source-dirs: src
   dependencies:
   - containers
-
+  - mtl
+  - transformers
+  - recursion-schemes
 executables:
   excelent-exe:
     main:                Main.hs
