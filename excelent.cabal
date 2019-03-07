@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: a2ceeb75ed0e4228e344ff760ea6ed70e3e133d4cf5648a105dcd94c699ecfb1
+-- hash: ee53f45921d7c0a0f2760e6f7009d136e9681d07dfb05ebc3bf4678a3fb0fa65
 
 name:           excelent
 version:        0.1.0.0
@@ -37,6 +37,7 @@ library
       base >=4.7 && <5
     , containers
     , mtl
+    , range
     , recursion-schemes
     , transformers
   default-language: Haskell2010

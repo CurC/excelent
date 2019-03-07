@@ -14,7 +14,6 @@ import Data.Maybe
 import Debug.Trace
 import GHC.Generics (Generic)
 
-
 data Expr = ConstInt Int
     | OperPlus Expr Expr
     | RefRel Position
@@ -50,29 +49,30 @@ data Env = Env {
         formulas :: FormulaData,
         view :: ViewData,
         port :: ViewPort
-    }
+    } deriving (Show)
 
 data ViewPort = ViewPort {
-    position :: Position,
-    size :: Size
-}
+        position :: Position,
+        size :: Size
+    } deriving (Show)
 
-evalAlg :: Algebra Expr' (Position -> Env -> ViewValue)
-evalAlg (ConstInt' i)     pos env = Right i
-evalAlg (OperPlus' i1 i2) pos env = do
-    f <- i1 pos env
-    g <- i2 pos env
-    return $ f + g
-evalAlg (RefRel' p) pos env = fromMaybe
-    (case M.lookup p (formulas env) of
-        Nothing -> Left ""
-        Just e -> cata evalAlg e p env)
-    (M.lookup p (view env))
-evalAlg (RefAbs' p) pos env = fromMaybe
-    (case M.lookup p (formulas env) of
-        Nothing -> Left ""
-        Just e -> cata evalAlg e p env)
-    (M.lookup p (view env))
+
+evalAlg :: Expr' (Position -> Env -> (Env, ViewValue)) -> (Position -> Env -> (Env, ViewValue))
+evalAlg (ConstInt' i)         pos env = (env, Right i)
+evalAlg (OperPlus' exp1 exp2) pos env = (env2, do
+        i <- vval1
+        j <- vval2
+        return $ i + j)
+    where
+        (env1, vval1) = exp1 pos env
+        (env2, vval2) = exp2 pos env1
+
+evalAlg (RefRel' p) pos env = undefined
+evalAlg (RefAbs' p) pos env = case M.lookup p (view env) of
+    Nothing -> case M.lookup p (formulas env) of
+        Nothing -> (env, Left "Empty cell referenced.")
+        Just e -> let (newEnv, val) = cata evalAlg e p env in (newEnv {view = M.insert p val (view newEnv)}, val)
+    Just e -> (env, e)
 
 -- calculate :: Position -> Env -> ViewValue
 -- calculate p env = fromMaybe
@@ -107,10 +107,32 @@ env2 = Env {
             }
     }
 
-evalExpr e env = cata evalAlg e (0, 0) env
+env3 :: Env
+env3 = Env {
+        formulas = M.insert (0, 0) (RefAbs (1, 0)) (M.insert (1, 0) (ConstInt 2) M.empty),
+        view = M.empty,
+        port = ViewPort {
+                position = (0, 0),
+                size = (10, 10)
+            }
+    }
 
-eval :: ViewPort -> FormulaData -> ViewData
-eval vp fd = undefined
+evalExpr :: Expr -> Position -> Env -> (Env, ViewValue)
+evalExpr e p env = cata evalAlg e p env
+
+evalCell :: Position -> Env -> Env
+evalCell pos env = case M.lookup pos (view env) of
+    Just v -> env
+    Nothing -> case M.lookup pos (formulas env) of
+        Just expr -> env { view = M.insert pos (snd $ evalExpr expr pos env) (view env) }
+        Nothing -> env { view = M.insert pos (Left "") (view env) }
+
+eval :: Env -> Env
+eval env@Env{view = v, formulas = f, port = vp} = resultEnv
+    where
+        resultEnv = foldr evalCell env positions
+        positions = [(top + i, left + j) | i <- [0..h], j <- [0..w]]
+        ViewPort {size = (w, h), position = (top, left)} = vp
 
 -- render :: ViewPort -> ViewData -> [[String]]
 -- render vp vd = undefined

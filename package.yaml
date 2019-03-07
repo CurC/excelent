@@ -29,6 +29,7 @@ library:
   - mtl
   - transformers
   - recursion-schemes
+  - range
 executables:
   excelent-exe:
     main:                Main.hs
