@@ -26,10 +26,9 @@ library:
   source-dirs: src
   dependencies:
   - containers
-  - mtl
-  - transformers
   - recursion-schemes
-  - range
+  - boxes
+
 executables:
   excelent-exe:
     main:                Main.hs
@@ -40,7 +39,11 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - excelent
-
+    - structured-cli
+    - containers
+    - mtl
+    - transformers
+    - data-default
 tests:
   excelent-test:
     main:                Spec.hs

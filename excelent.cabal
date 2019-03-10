@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: ee53f45921d7c0a0f2760e6f7009d136e9681d07dfb05ebc3bf4678a3fb0fa65
+-- hash: adc6c36a04b3fb6dd327bd0ce829d5c108db212cf41a7546549b64d80ce22f24
 
 name:           excelent
 version:        0.1.0.0
@@ -35,11 +35,9 @@ library
       src
   build-depends:
       base >=4.7 && <5
+    , boxes
     , containers
-    , mtl
-    , range
     , recursion-schemes
-    , transformers
   default-language: Haskell2010
 
 executable excelent-exe
@@ -51,7 +49,12 @@ executable excelent-exe
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , containers
+    , data-default
     , excelent
+    , mtl
+    , structured-cli
+    , transformers
   default-language: Haskell2010
 
 test-suite excelent-test

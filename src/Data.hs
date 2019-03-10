@@ -11,8 +11,10 @@ module Data where
 import qualified Data.Map as M
 import Data.Functor.Foldable
 import Data.Maybe
+import Data.List
 import Debug.Trace
 import GHC.Generics (Generic)
+import qualified Text.PrettyPrint.Boxes as T
 
 data Expr = ConstInt Int
     | OperPlus Expr Expr
@@ -33,10 +35,10 @@ instance Recursive Expr
 instance Corecursive Expr
 
 instance Show Expr where
-    show (ConstInt i) = "(ConstInt " ++ show i ++ ")"
-    show (OperPlus i1 i2) = "(OperPlus " ++ show i1 ++ " + " ++ show i2 ++ ")"
-    show (RefRel p) = "(RefRel " ++ show p ++ ")"
-    show (RefAbs p) = "(RefAbs " ++ show p ++ ")"
+    show (ConstInt i) = show i
+    show (OperPlus i1 i2) = show i1 ++ " + " ++ show i2
+    show (RefRel p) = "rel" ++ show p
+    show (RefAbs p) = "abs" ++ show p
 
 type Position = (Int, Int)
 type Size = (Int, Int)
@@ -93,7 +95,7 @@ env1 = Env {
         view = M.empty,
         port = ViewPort {
                 position = (0, 0),
-                size = (0, 0)
+                size = (10, 10)
             }
     }
 
@@ -103,7 +105,7 @@ env2 = Env {
         view = M.empty,
         port = ViewPort {
                 position = (0, 0),
-                size = (0, 0)
+                size = (10, 10)
             }
     }
 
@@ -131,14 +133,35 @@ eval :: Env -> Env
 eval env@Env{view = v, formulas = f, port = vp} = resultEnv
     where
         resultEnv = foldr evalCell env positions
-        positions = [(top + i, left + j) | i <- [0..h], j <- [0..w]]
-        ViewPort {size = (w, h), position = (top, left)} = vp
+        positions = concat (inView vp)
 
--- render :: ViewPort -> ViewData -> [[String]]
--- render vp vd = undefined
+inView :: ViewPort -> [[Position]]
+inView ViewPort {size = (w, h), position = (top, left)} =
+    [[(top + i, left + j) | i <- [0..h]] | j <- [0..w]]
 
--- format :: [[String]] -> IO ()
--- format = undefined
+renderView :: Env -> [[String]]
+renderView Env {view = v, port = vp } = viewData
+    where
+        viewData = map (map (\p -> case p `M.lookup` v of
+            Nothing -> emptyCellPlaceholder
+            Just v -> case v of
+                Left s -> if s == "" then emptyCellPlaceholder else s
+                Right val -> show val)) positions
+        positions = inView vp
+
+renderFormulas :: Env -> [[String]]
+renderFormulas Env {formulas = f, port = vp } = fData
+    where
+        fData = map (map (\p -> case p `M.lookup` f of
+            Nothing -> emptyCellPlaceholder
+            Just x -> show x)) positions
+        positions = inView vp
+
+format :: [[String]] -> T.Box
+format = formatTable (repeat T.right) 2
+
+emptyCellPlaceholder :: String
+emptyCellPlaceholder = "_____"
 
 -- computation :: State FormulaData FormulaData
 -- computation = do
@@ -147,8 +170,19 @@ eval env@Env{view = v, formulas = f, port = vp} = resultEnv
 --     y <- get
 --     return y
 
--- example :: IO ()
--- example = print $ runState computation M.empty
+printView :: Env -> IO ()
+printView env = T.printBox . format . renderView $ eval env
 
--- insert :: Position -> Expr Int -> FormulaData -> FormulaData
--- insert = undefined
+printForms :: Env -> IO ()
+printForms env = T.printBox . format . renderFormulas $ eval env
+
+-- https://github.com/treeowl/boxes/pull/5/files
+formatTable :: [T.Alignment] -> Int -> [[String]] -> T.Box
+formatTable als sep cols = T.punctuateH T.top sep' $ map (uncurry singleCol) colal
+  where als' = cycle als
+        cols' = transpose cols
+        colal = zip als' cols'
+        sep' = T.emptyBox 0 sep
+
+singleCol :: T.Alignment -> [String] -> T.Box
+singleCol al = T.vcat al . map T.text
