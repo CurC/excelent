@@ -28,6 +28,7 @@ library:
   - containers
   - recursion-schemes
   - boxes
+  - fgl
 
 executables:
   excelent-exe:
