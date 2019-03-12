@@ -1,49 +1,41 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE DeriveFunctor #-}
-
 module Main where
 
-import Lib
-import Data
-import Control.Monad
-import Control.Monad.IO.Class
-import System.Console.StructuredCLI
-import Control.Monad.State.Strict
-import qualified Data.Map as M
-import Data.Default (def)
+import Brick
+import Definition
+import Eval
+import Print
 
+data State = State { env :: Env
+                   , cursor :: Position }
+
+data Dir = Left | Right | Up | Down
+
+type Name = ()
+
+data Event = Move Dir
+           | Insert Char
+           | Delete Char
+
+app :: App Env Event Name
+app = App { appDraw = drawUI
+          , appChooseCursor = neverShowCursor
+          , appHandleEvent = handleEvent
+          , appStartEvent = return
+          , appAttrMap = const theMap
+          }
+
+-- Handling events
+
+handleEvent :: Env -> BrickEvent Name Event -> EventM Name (Next Env)
+handleEvent = undefined
+
+-- Drawing
+
+drawUI :: Env -> [Widget Name]
+drawUI = undefined
+
+theMap :: AttrMap
+theMap = undefined
 
 main :: IO ()
-main = do
-    -- let initial = initialState
-    let initial = env3
-    evalStateT run initial
-        where run = do
-                result <- runCLI "some CLI" def root
-                either (error.show) return result
-
-type Excel a = CommandsT (StateT Env IO) a
-
-root :: Excel ()
-root = do
-    pView
-    pForm
-
-pView :: Excel ()
-pView = command "eval" "Evaluate the current sheet" $ do
-    state <- get
-    liftIO . printView $ state
-    return NoAction
-
-pForm :: Excel ()
-pForm = command "print" "Print the current sheet contents" $ do
-    state <- get
-    liftIO . printForms $ state
-    return NoAction
-
-initialState :: Env
-initialState = Env {
-        view = M.empty,
-        formulas = M.empty,
-        port = ViewPort { size = (10, 10), position = (0, 0) }
-    }
+main = undefined

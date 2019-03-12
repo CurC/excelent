@@ -39,7 +39,7 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - excelent
-    - structured-cli
+    - brick
     - containers
     - mtl
     - transformers
