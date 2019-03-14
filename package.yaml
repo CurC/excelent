@@ -28,7 +28,7 @@ library:
   - containers
   - recursion-schemes
   - boxes
-  - fgl
+  - algebraic-graphs
 
 executables:
   excelent-exe:
@@ -40,7 +40,6 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - excelent
-    - brick
     - containers
     - mtl
     - transformers

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 5745f00e57c982974659b6edc020e4e9e6ead080a926eaca2cdebaebb7bf71e2
+-- hash: 76b8b5823576295b93c2e8fd4d3381f3a39c1e39735489132f83ce8b101c2a35
 
 name:           excelent
 version:        0.1.0.0
@@ -28,7 +28,8 @@ source-repository head
 library
   exposed-modules:
       Definition
-      Eval
+      Excelent.Eval.Eval
+      Excelent.Eval.Graph
       Lib
       Print
   other-modules:
@@ -36,7 +37,8 @@ library
   hs-source-dirs:
       src
   build-depends:
-      base >=4.7 && <5
+      algebraic-graphs
+    , base >=4.7 && <5
     , boxes
     , containers
     , recursion-schemes
@@ -51,7 +53,6 @@ executable excelent-exe
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
-    , brick
     , containers
     , data-default
     , excelent

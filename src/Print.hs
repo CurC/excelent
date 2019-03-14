@@ -1,7 +1,7 @@
 module Print where
 
 import Definition
-import Eval
+import Excelent.Eval.Eval
 import Data.Maybe
 import Data.List
 import qualified Text.PrettyPrint.Boxes as T

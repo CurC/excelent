@@ -1,6 +1,6 @@
-module Eval where
+module Excelent.Eval.Eval where
 
-import Data.Graph.Inductive.Graph
+import Algebra.Graph.AdjacencyMap as G
 import Data.Functor.Foldable
 import Definition
 import qualified Data.Map as M
@@ -40,8 +40,3 @@ eval env@Env{view = v, formulas = f, port = vp} = resultEnv
 inView :: ViewPort -> [[Position]]
 inView ViewPort {size = (w, h), position = (top, left)} =
     [[(top + i, left + j) | i <- [0..h]] | j <- [0..w]]
-
-type EvalGraph = Graph Position ()
-
-dependencies :: Env -> Graph
-dependencies Env {formulas = f} = undefined
