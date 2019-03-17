@@ -18,7 +18,7 @@ import Text.Parsec.Token
 import Text.Parsec.Language
 import Definition
 
-type ExpressionParser = Parsec String ()
+type ExprParser = Parsec String () Expr
 
 style :: TokenParser st
 style = makeTokenParser emptyDef
@@ -31,8 +31,21 @@ intTuple = tuplify <$> integer style
                    <*  symbol style ","
                    <*> integer style
 
-refAbs ::  Parsec String () Expr
+-- https://en.wikipedia.org/wiki/Operator-precedence_parser#Precedence_climbing_method
+expression :: ExprParser
+expression = addition
+
+addition :: ExprParser
+addition = OperPlus <$> primary <* symbol style "+" <*> primary
+
+primary :: ExprParser
+primary = refRel <|> refAbs <|> constI
+
+refAbs :: ExprParser
 refAbs = RefAbs <$> between (symbol style "[") (symbol style "]") intTuple
 
-refRel ::  Parsec String () Expr
+constI :: ExprParser
+constI = ConstInt . fromInteger <$> integer style
+
+refRel :: ExprParser
 refRel = RefRel <$> between (symbol style "$[") (symbol style "]") intTuple
