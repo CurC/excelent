@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 76b8b5823576295b93c2e8fd4d3381f3a39c1e39735489132f83ce8b101c2a35
+-- hash: 5cd6f721681d9079e22c63d2dca8f46a479413e99e2556b405645bbd37d4436c
 
 name:           excelent
 version:        0.1.0.0
@@ -30,6 +30,7 @@ library
       Definition
       Excelent.Eval.Eval
       Excelent.Eval.Graph
+      Excelent.Parser
       Lib
       Print
   other-modules:
@@ -41,6 +42,7 @@ library
     , base >=4.7 && <5
     , boxes
     , containers
+    , parsec
     , recursion-schemes
   default-language: Haskell2010
 

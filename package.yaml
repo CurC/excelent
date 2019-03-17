@@ -29,6 +29,7 @@ library:
   - recursion-schemes
   - boxes
   - algebraic-graphs
+  - parsec
 
 executables:
   excelent-exe:
