@@ -30,6 +30,8 @@ library:
   - boxes
   - algebraic-graphs
   - NumInstances
+  - parsec
+
 executables:
   excelent-exe:
     main:                Main.hs
