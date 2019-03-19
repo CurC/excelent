@@ -5,7 +5,7 @@ import Data.Functor.Foldable
 import Definition
 import qualified Data.Map as M
 
-evalAlg :: Expr' (Position -> Env -> (Env, ViewValue)) -> (Position -> Env -> (Env, ViewValue))
+evalAlg :: Algebra Expr' (Position -> Env -> (Env, ViewValue))
 evalAlg (ConstInt' i)         pos env = (env, Right i)
 evalAlg (OperPlus' exp1 exp2) pos env = (env2, do
         i <- vval1

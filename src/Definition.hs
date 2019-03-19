@@ -56,7 +56,6 @@ data ViewPort = ViewPort {
         size :: Size
     } deriving (Show)
 
-
 e1 :: Expr
 e1 = ConstInt 1
 

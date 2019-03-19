@@ -11,14 +11,11 @@ import qualified Data.Set as S
 
 type NodeGraph = GA.AdjacencyMap Position
 
-graphAlg :: Expr' (Position -> NodeGraph) -> (Position -> NodeGraph)
+graphAlg :: Algebra Expr' (Position -> NodeGraph)
 graphAlg (ConstInt' i)         pos = GA.vertex pos
 graphAlg (OperPlus' exp1 exp2) pos = GA.overlay (exp1 pos) (exp2 pos)
-graphAlg (RefRel' p)           pos = GA.edge (sumTuple p pos) pos
+graphAlg (RefRel' p)           pos = GA.edge (p + pos) pos
 graphAlg (RefAbs' p)           pos = GA.edge p pos
-
-sumTuple :: Num a => (a, a) -> (a, a) -> (a, a)
-sumTuple (a1, a2) (b1, b2) = (a1 + b1, a2 + b2)
 
 graph :: Expr -> Position -> NodeGraph
 graph = cata graphAlg
