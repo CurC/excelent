@@ -16,7 +16,7 @@ import Text.Parsec.Combinator
 import Text.Parsec.Char
 import Text.Parsec.Token
 import Text.Parsec.Language
-import Definition
+import Excelent.Definition
 
 type ExprParser = Parsec String () Expr
 

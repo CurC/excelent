@@ -6,13 +6,12 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveFunctor #-}
 
-module Definition where
+module Excelent.Definition where
 
 import Data.Functor.Foldable
 import GHC.Generics (Generic)
 import qualified Data.Map as M
-import Algebra.Graph.AdjacencyMap
-import Excelent.Eval.Graph
+import Algebra.Graph.AdjacencyMap as GA
 
 data Expr = ConstInt Int
     | ConstFloat Float
@@ -46,6 +45,7 @@ type Size = (Int, Int)
 type FormulaData = M.Map Position Expr
 type ViewData = M.Map Position ViewValue
 type ViewValue = (Either String Int)
+type NodeGraph = GA.AdjacencyMap Position
 
 data Env = Env {
         formulas :: FormulaData,
@@ -58,6 +58,14 @@ data ViewPort = ViewPort {
         position :: Position,
         size :: Size
     } deriving (Show)
+
+initial :: ViewPort -> Env
+initial port = Env {
+        formulas = M.empty,
+        view = M.empty,
+        evalGraph = GA.empty,
+        port = port
+    }
 
 e1 :: Expr
 e1 = ConstInt 1

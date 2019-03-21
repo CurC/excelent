@@ -1,7 +1,7 @@
 module Main where
 
 import Brick
-import Definition
+import Excelent.Definition
 import Excelent.Eval.Eval
 import Print
 

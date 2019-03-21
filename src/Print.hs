@@ -1,6 +1,6 @@
 module Print where
 
-import Definition
+import Excelent.Definition
 import Excelent.Eval.Eval
 import Data.Maybe
 import Data.List

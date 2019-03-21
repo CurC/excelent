@@ -55,6 +55,7 @@ executables:
     - array
     - text-zipper
     - vty
+    - NumInstances
 tests:
   excelent-test:
     main:                Spec.hs

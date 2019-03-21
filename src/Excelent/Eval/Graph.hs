@@ -5,12 +5,11 @@ import Algebra.Graph.AdjacencyMap as GA
 import Algebra.Graph.AdjacencyMap.Algorithm as GAA
 import Data.Functor.Foldable
 import Excelent.Eval.Eval
-import Definition
+import Excelent.Definition
 import qualified Data.Map as M
 import qualified Data.Set as S
 import Data.NumInstances.Tuple
 
-type NodeGraph = GA.AdjacencyMap Position
 
 graphAlg :: Algebra Expr' (Position -> NodeGraph)
 graphAlg (ConstInt' i)         pos = GA.vertex pos

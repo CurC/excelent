@@ -14,10 +14,16 @@ import Brick.Widgets.Edit
 import Brick.Widgets.Border
 import Graphics.Vty
 
+import Data.NumInstances.Tuple
+
+import Excelent.Definition
 import Excelent.Eval.Eval
 
-type State = (FocusRing Position, Array Position (Editor String Position))
-type Position = (Int, Int)
+data State = State {
+        focus :: FocusRing Position,
+        widgets :: Array Position (Editor String Position),
+        env :: Env
+    }
 
 instance Monoid Int where
     mempty = 0
@@ -37,7 +43,16 @@ main :: IO State
 main = defaultMain app initialState
 
 initialState :: State
-initialState = (focusRing $ indices editors, editors)
+initialState = State {
+        focus = focusRing $ indices editors',
+        widgets = editors',
+        env = initial ViewPort {
+            size = (numberOfRows, numberOfColumns),
+            position = (0, 0)
+        }
+    }
+    where
+        editors' = editors
 
 editors :: Array Position (Editor String Position)
 editors = array ((1, 1), (numberOfRows, numberOfColumns))
@@ -52,15 +67,18 @@ numberOfColumns = 4
 app :: App State e Position
 app = App
     { appDraw = draw
-    , appChooseCursor = focusRingCursor fst
+    , appChooseCursor = focusRingCursor focus
     , appHandleEvent = handleEvent
     , appStartEvent = return
     , appAttrMap = const $ attrMap defAttr []
     }
 
 draw :: State -> [Widget Position]
-draw (r, eds) = [vBox $ hBox <$> divideIntoGroupsOf numberOfColumns ws]
+draw state
+    = [vBox $ hBox <$> divideIntoGroupsOf numberOfColumns ws]
   where
+    r = focus state
+    eds = widgets state
     ws = map border $ elems $ withFocusRing r (renderEditor $ str . head) <$> eds
 
 --Insert result of eval, except for the one in focus.
@@ -68,7 +86,7 @@ updateEditors :: State -> Dir -> State
 updateEditors (r,eds) Left  = (focus l, showData l)
 updateEditors (r,eds) Right = (focus r, showData r)
 updateEditors (r,eds) Up    = (focus u, showData u)
-updateEditors (r,eds) Down  = (focus d, showData d)    
+updateEditors (r,eds) Down  = (focus d, showData d)
     where
         focus dir = focusSetCurrent (pos <> dir)
         showData dir = undefined
@@ -80,7 +98,7 @@ updateEditors (r,eds) Down  = (focus d, showData d)
 
 {-
 Array Position (Editor String Position)
-updateEditors (r,eds) = eds // [((i,j), if not (inFocus (i, j)) then applyEdit (insertChar 'a' . clearZipper) (ed i j) else ed i j) 
+updateEditors (r,eds) = eds // [((i,j), if not (inFocus (i, j)) then applyEdit (insertChar 'a' . clearZipper) (ed i j) else ed i j)
                                | i <- [1..numberOfRows], j <- [1..numberOfColumns]
                                ]
     where ed i j = eds ! (i,j)
