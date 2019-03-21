@@ -18,12 +18,10 @@ import Brick.Widgets.Edit
 import Brick.Widgets.Border
 import Graphics.Vty
 
-
 import Excelent.Definition
 import Excelent.Eval.Eval
 import Excelent.Parser
 import Print
-import Debug.Trace
 
 data State = State {
         focus :: FocusRing Position,
@@ -86,20 +84,33 @@ show' state@State {widgets = w, env = e} d
     = w //
         [((i,j),
             if not (inFocus pos d (i,j))
-                then applyEdit ((\w -> foldl' (flip insertChar) w (printV (i, j) v)) . clearZipper) (ed i j)
-                else applyEdit ((\w -> foldl' (flip insertChar) w (printF (i, j) f)) . clearZipper) (ed i j))
-        | i <- [0..fst (size p) - 1], j <- [0..snd (size p) - 1]
-        ]
+                then newWidget printV v (i, j)
+                else newWidget printF f (i, j))
+        | i <- [0..fst (size p) - 1], j <- [0..snd (size p) - 1]]
     where
     Env{formulas = f, view = v, port = p} = e
-    ed i j = widgets state ! (i,j)
     pos = currentPosition state
+    newWidget f data' coord =
+        swapEditorContents (f coord data') (getWidget state coord)
 
+swapEditorContents :: String -> Editor String Position -> Editor String Position
+swapEditorContents xs = applyEdit (insertString xs . clearZipper)
+
+insertString :: String -> TextZipper Char -> TextZipper Char
+insertString = foldl' (flip insertChar)
+
+-- Determine if the given position is in focus if moving in the
+-- specified direction
 inFocus :: Position -> Dir -> Position -> Bool
 inFocus current dir check = current + move dir == check
 
+-- Get the current position in focus
 currentPosition :: State -> Position
 currentPosition state = fromJust $ focusGetCurrent (focus state)
+
+-- Get the widget at the given position
+getWidget :: State -> Position -> Editor String Position
+getWidget state pos = widgets state ! pos
 
 move :: Dir -> (Int, Int)
 move W = ( 0,-1)
@@ -107,30 +118,28 @@ move E = ( 0, 1)
 move N = (-1, 0)
 move S = ( 1, 0)
 
+updateFocus :: Dir -> Focus -> Focus
+updateFocus dir = focusSetCurrent (pos + move dir)
+
 --Insert result of eval, except for the one in focus.
 updateEditors :: State -> Dir -> State
-updateEditors state dir = state' {focus = ring (move dir), widgets = show' state' dir}
+updateEditors state dir = state' {
+        focus = updateFocus dir (focus state'),
+        widgets = show' state' dir
+    }
   where
-    ring d = focusSetCurrent (pos + d) (focus state')
+    pos          = currentPosition state
     insertedText = getEditContents (widgets state ! pos)
-    parsed = P.parse expression "" (concat insertedText)
-    oldEnv = case parsed of
+    parsed       = P.parse expression "" (concat insertedText)
+    newEnv       = case parsed of
         Left err -> env state
-        Right expr -> (env state) { view = M.empty, formulas = M.insert pos expr (formulas $ env state)}
-    newEnv = eval oldEnv
-    state' = state {env = newEnv}
-    form' = formulas $ env state'
-    view' = view $ env state'
-    pos = currentPosition state
+        Right expr -> (env state) {
+                view = M.empty,
+                formulas = M.insert pos expr (formulas $ env state)
+            }
+    state' = state {env = eval newEnv}
+    env@Env{formulas = form', view = view'} = env state'
 
-{-
-Array Position (Editor String Position)
-updateEditors (r,eds) = eds // [((i,j), if not (inFocus (i, j)) then applyEdit (insertChar 'a' . clearZipper) (ed i j) else ed i j)
-                               | i <- [1..numberOfRows], j <- [1..numberOfColumns]
-                               ]
-    where ed i j = eds ! (i,j)
-          inFocus e = fromJust (focusGetCurrent r) == e
--}
 handleEvent :: State -> BrickEvent Position e -> EventM Position (Next State)
 handleEvent state' (VtyEvent e) = case e of
     EvKey KLeft  [] -> continue $ updateEditors state' W
