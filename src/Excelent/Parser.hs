@@ -36,16 +36,16 @@ expression :: ExprParser
 expression = addition
 
 addition :: ExprParser
-addition = OperPlus <$> primary <* symbol style "+" <*> primary
+addition = try (OperPlus <$> primary <* symbol style "+" <*> primary) <|> primary
 
 primary :: ExprParser
 primary = refRel <|> refAbs <|> constI
 
 refAbs :: ExprParser
-refAbs = RefAbs <$> between (symbol style "[") (symbol style "]") intTuple
+refAbs = RefAbs <$> between (symbol style "abs(") (symbol style ")") intTuple
 
 constI :: ExprParser
 constI = ConstInt . fromInteger <$> integer style
 
 refRel :: ExprParser
-refRel = RefRel <$> between (symbol style "$[") (symbol style "]") intTuple
+refRel = RefRel <$> between (symbol style "rel(") (symbol style ")") intTuple

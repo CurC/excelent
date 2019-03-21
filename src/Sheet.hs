@@ -1,11 +1,12 @@
 module Sheet where
 
 import Data.Array
+import Data.List
 import Data.Maybe
-import qualified Data.Map as M
 import Data.Monoid ((<>))
-import Data.Text.Zipper
 import Data.NumInstances.Tuple
+import Data.Text.Zipper
+import qualified Data.Map as M
 import qualified Text.Parsec as P
 
 import Brick.AttrMap
@@ -17,7 +18,6 @@ import Brick.Widgets.Edit
 import Brick.Widgets.Border
 import Graphics.Vty
 
-import Data.NumInstances.Tuple
 
 import Excelent.Definition
 import Excelent.Eval.Eval
@@ -45,23 +45,22 @@ initialState :: State
 initialState = State {
         focus = focusRing $ indices editors',
         widgets = editors',
-        env = initial ViewPort {
-            size = (numberOfRows, numberOfColumns),
-            position = (0, 0)
-        }
+        env = initial viewport
     }
     where
-        editors' = editors
+        editors' = editors viewport
+        viewport = ViewPort {
+            size = (10, 6),
+            position = (0, 0)
+        }
 
-editors :: Array Position (Editor String Position)
-editors = array ((0, 0), (numberOfRows - 1, numberOfColumns - 1))
+editors :: ViewPort -> Array Position (Editor String Position)
+editors vp = array ((0, 0), (rows, cols))
     [ ((i, j), editor (i, j) (Just 1) "")
-    | i <- [0..numberOfRows - 1], j <- [0..numberOfColumns - 1]
+    | i <- [0..rows], j <- [0..cols]
     ]
-
-numberOfRows, numberOfColumns :: Int
-numberOfRows = 4
-numberOfColumns = 4
+    where
+        (rows, cols) = size vp - (1, 1)
 
 app :: App State e Position
 app = App
@@ -74,40 +73,47 @@ app = App
 
 draw :: State -> [Widget Position]
 draw state'
-    = [vBox $ hBox <$> divideIntoGroupsOf numberOfColumns ws]
+    = [vBox $ hBox <$> divideIntoGroupsOf cols ws]
   where
+    (rows, cols) = size p
     r = focus state'
     eds = widgets state'
     ws = map border $ elems $ withFocusRing r (renderEditor $ str . head) <$> eds
+    Env{formulas = f, view = v, port = p} = env state'
 
-show' :: State -> Position -> Array Position (Editor String Position)
+show' :: State -> Dir -> Array Position (Editor String Position)
 show' state@State {widgets = w, env = e} d
     = w //
         [((i,j),
-            if not (inFocus (i,j) d)
-                then applyEdit ((\w -> foldr insertChar w (reverse $ printV (i, j) v)) . clearZipper) (ed i j)
-                else applyEdit ((\w -> foldr insertChar w (reverse $ printF (i, j) f)) . clearZipper) (ed i j))
+            if not (inFocus pos d (i,j))
+                then applyEdit ((\w -> foldl' (flip insertChar) w (printV (i, j) v)) . clearZipper) (ed i j)
+                else applyEdit ((\w -> foldl' (flip insertChar) w (printF (i, j) f)) . clearZipper) (ed i j))
         | i <- [0..fst (size p) - 1], j <- [0..snd (size p) - 1]
         ]
     where
     Env{formulas = f, view = v, port = p} = e
     ed i j = widgets state ! (i,j)
-    pos = fromJust $ focusGetCurrent (focus state)
-    inFocus e d = pos + d == e
+    pos = currentPosition state
 
+inFocus :: Position -> Dir -> Position -> Bool
+inFocus current dir check = current + move dir == check
+
+currentPosition :: State -> Position
+currentPosition state = fromJust $ focusGetCurrent (focus state)
+
+move :: Dir -> (Int, Int)
+move W = ( 0,-1)
+move E = ( 0, 1)
+move N = (-1, 0)
+move S = ( 1, 0)
 
 --Insert result of eval, except for the one in focus.
 updateEditors :: State -> Dir -> State
-updateEditors state dir = case dir of
-    W -> state' {focus = ring w, widgets = show' state' w}
-    E -> state' {focus = ring e, widgets = show' state' e}
-    N -> state' {focus = ring n, widgets = show' state' n}
-    S -> state' {focus = ring s, widgets = show' state' s}
+updateEditors state dir = state' {focus = ring (move dir), widgets = show' state' dir}
   where
     ring d = focusSetCurrent (pos + d) (focus state')
     insertedText = getEditContents (widgets state ! pos)
     parsed = P.parse expression "" (concat insertedText)
-    oldEnv :: Env
     oldEnv = case parsed of
         Left err -> env state
         Right expr -> (env state) { view = M.empty, formulas = M.insert pos expr (formulas $ env state)}
@@ -115,11 +121,7 @@ updateEditors state dir = case dir of
     state' = state {env = newEnv}
     form' = formulas $ env state'
     view' = view $ env state'
-    pos = fromJust $ focusGetCurrent (focus state)
-    w = ( 0,-1)
-    e = ( 0, 1)
-    n = (-1, 0)
-    s = ( 1, 0)
+    pos = currentPosition state
 
 {-
 Array Position (Editor String Position)
@@ -142,5 +144,5 @@ handleEvent state' (VtyEvent e) = case e of
         continue state' {widgets = widgets state' // [(pos, ed')]}
   where
     ed = widgets state' ! pos
-    pos = fromJust $ focusGetCurrent (focus state')
+    pos = currentPosition state'
 handleEvent state' _ = continue state'
