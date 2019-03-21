@@ -2,7 +2,7 @@ module Main where
 
 import Brick
 import Definition
-import Eval
+import Excelent.Eval.Eval
 import Print
 
 data State = State { env :: Env

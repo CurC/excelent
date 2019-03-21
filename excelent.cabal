@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 5cd6f721681d9079e22c63d2dca8f46a479413e99e2556b405645bbd37d4436c
+-- hash: 8485b55d06afc313b58557fab42f651481583a0ec48f1127dd2eb46f1dd25af9
 
 name:           excelent
 version:        0.1.0.0
@@ -33,17 +33,22 @@ library
       Excelent.Parser
       Lib
       Print
+      Sheet
   other-modules:
       Paths_excelent
   hs-source-dirs:
       src
   build-depends:
       algebraic-graphs
+    , array
     , base >=4.7 && <5
     , boxes
+    , brick
     , containers
     , parsec
     , recursion-schemes
+    , text-zipper
+    , vty
   default-language: Haskell2010
 
 executable excelent-exe
@@ -54,12 +59,17 @@ executable excelent-exe
       app
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      array
+    , base >=4.7 && <5
+    , brick
     , containers
     , data-default
     , excelent
     , mtl
+    , recursion-schemes
+    , text-zipper
     , transformers
+    , vty
   default-language: Haskell2010
 
 test-suite excelent-test
