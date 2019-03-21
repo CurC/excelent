@@ -4,6 +4,7 @@ import Data.Array
 import Data.Maybe
 import Data.Monoid ((<>))
 import Data.Text.Zipper
+import Data.NumInstances.Tuple
 
 import Brick.AttrMap
 import Brick.Focus
@@ -19,14 +20,7 @@ import Excelent.Eval.Eval
 type State = (FocusRing Position, Array Position (Editor String Position))
 type Position = (Int, Int)
 
-instance Monoid Int where
-    mempty = 0
-    mappend = (<>)
-
-instance Semigroup Int where
-    (<>) = (+)
-
-data Dir = Up | Down | Left | Right
+data Dir =  N | S | W | E
 
 divideIntoGroupsOf :: Int -> [a] -> [[a]]
 divideIntoGroupsOf n [] = [[]]
@@ -65,18 +59,23 @@ draw (r, eds) = [vBox $ hBox <$> divideIntoGroupsOf numberOfColumns ws]
 
 --Insert result of eval, except for the one in focus.
 updateEditors :: State -> Dir -> State
-updateEditors (r,eds) Left  = (focus l, showData l)
-updateEditors (r,eds) Right = (focus r, showData r)
-updateEditors (r,eds) Up    = (focus u, showData u)
-updateEditors (r,eds) Down  = (focus d, showData d)    
-    where
-        focus dir = focusSetCurrent (pos <> dir)
-        showData dir = undefined
-        pos = fromJust $ focusGetCurrent r
-        l = ( 0,-1)
-        r = ( 0, 1)
-        u = (-1, 0)
-        d = ( 1, 0)
+updateEditors (r,eds) dir = case dir of
+    W -> (focus w, showData w)
+    E -> (focus e, showData e)
+    N -> (focus n, showData n)
+    S -> (focus s, showData s)    
+  where
+    focus d = focusSetCurrent (pos + d) r
+    showData d = eds // [((i,j), if not (inFocus (i,j) d) then applyEdit (insertChar 'a' . clearZipper) (ed i j) else ed i j) 
+                      | i <- [1..numberOfRows], j <- [1..numberOfColumns]
+                      ]
+    inFocus e d = pos + d == e
+    pos = fromJust $ focusGetCurrent r
+    ed i j = eds ! (i,j)
+    w = ( 0,-1)
+    e = ( 0, 1)
+    n = (-1, 0)
+    s = ( 1, 0)
 
 {-
 Array Position (Editor String Position)
@@ -88,11 +87,11 @@ updateEditors (r,eds) = eds // [((i,j), if not (inFocus (i, j)) then applyEdit (
 -}
 handleEvent :: State -> BrickEvent Position e -> EventM Position (Next State)
 handleEvent s@(r, eds) (VtyEvent e) = case e of
-    EvKey KLeft  [] -> continue $ updateEditors s Left
-    EvKey KRight [] -> continue $ updateEditors s Right
-    EvKey KUp    [] -> continue $ updateEditors s Up
-    EvKey KDown  [] -> continue $ updateEditors s Down
-    EvKey KEnter [] -> continue $ updateEditors s Down
+    EvKey KLeft  [] -> continue $ updateEditors s W
+    EvKey KRight [] -> continue $ updateEditors s E
+    EvKey KUp    [] -> continue $ updateEditors s N
+    EvKey KDown  [] -> continue $ updateEditors s S
+    EvKey KEnter [] -> continue $ updateEditors s S
     EvKey KEsc   [] -> halt s
     _               -> do
         ed' <- handleEditorEvent e ed

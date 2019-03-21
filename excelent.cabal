@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 8485b55d06afc313b58557fab42f651481583a0ec48f1127dd2eb46f1dd25af9
+-- hash: 7c7f801056efe9634bb4e799b07c6fbef2c50f3b8470d61645686f63aa5f0d1b
 
 name:           excelent
 version:        0.1.0.0
@@ -59,7 +59,8 @@ executable excelent-exe
       app
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      array
+      NumInstances
+    , array
     , base >=4.7 && <5
     , brick
     , containers
