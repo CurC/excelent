@@ -26,6 +26,18 @@ renderFormulas Env {formulas = f, port = vp } = fData
         positions = inView vp
 
 
+printF :: Position -> FormulaData -> String
+printF p f = case M.lookup p f of
+    Just x -> show x
+    Nothing -> ""
+
+printV :: Position -> ViewData -> String
+printV p v = case M.lookup p v of
+    Just x -> case x of
+        Left s -> ""
+        Right i -> show i
+    Nothing -> ""
+
 emptyCellPlaceholder :: String
 emptyCellPlaceholder = "_____"
 
