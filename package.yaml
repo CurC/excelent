@@ -31,6 +31,10 @@ library:
   - algebraic-graphs
   - NumInstances
   - parsec
+  - brick
+  - array
+  - text-zipper
+  - vty
 
 executables:
   excelent-exe:
@@ -43,9 +47,14 @@ executables:
     dependencies:
     - excelent
     - containers
+    - recursion-schemes
     - mtl
     - transformers
     - data-default
+    - brick
+    - array
+    - text-zipper
+    - vty
 tests:
   excelent-test:
     main:                Spec.hs
