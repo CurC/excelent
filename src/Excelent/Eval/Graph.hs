@@ -8,6 +8,7 @@ import Excelent.Eval.Eval
 import Definition
 import qualified Data.Map as M
 import qualified Data.Set as S
+import Data.NumInstances.Tuple
 
 type NodeGraph = GA.AdjacencyMap Position
 
@@ -20,17 +21,21 @@ graphAlg (RefAbs' p)           pos = GA.edge p pos
 graph :: Expr -> Position -> NodeGraph
 graph = cata graphAlg
 
-initializeGraph :: Env -> NodeGraph
-initializeGraph Env {formulas = f}
-    = foldr (\(pos, exp) g -> GA.overlay (graph exp pos) g) GA.empty (M.toList f)
+initializeGraph :: Env -> Env
+initializeGraph env
+    = env { evalGraph =
+        foldr (\(pos, exp) g -> GA.overlay (graph exp pos) g)
+            GA.empty (M.toList f)}
+    where
+        f = formulas env
 
-changeCell :: NodeGraph -> Position -> Expr -> (NodeGraph, [Position])
-changeCell g p exp = (newGraph, p : toRecalculate)
+changeCell :: Env -> Position -> Expr -> (Env, [Position])
+changeCell env p exp = (env {evalGraph = newGraph}, p : toRecalculate)
     where
         new = graph exp p
-        removed = GA.removeVertex p g
+        removed = GA.removeVertex p (evalGraph env)
         newGraph = GA.overlay removed new
-        inputs = S.toList $ GA.preSet p g
+        inputs = S.toList $ GA.preSet p (evalGraph env)
         toRecalculate = dfs inputs removed
 
 cycles :: NodeGraph -> [Position]

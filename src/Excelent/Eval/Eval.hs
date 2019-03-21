@@ -1,9 +1,9 @@
 module Excelent.Eval.Eval where
 
+import qualified Data.Map as M
 import Algebra.Graph.AdjacencyMap as G
 import Data.Functor.Foldable
 import Definition
-import qualified Data.Map as M
 
 evalAlg :: Algebra Expr' (Position -> Env -> (Env, ViewValue))
 evalAlg (ConstInt' i)         pos env = (env, Right i)
