@@ -16,6 +16,7 @@ import Brick.Types
 import Brick.Widgets.Core
 import Brick.Widgets.Edit
 import Brick.Widgets.Border
+import Brick.Widgets.Border.Style
 import Graphics.Vty
 
 import Excelent.Definition
@@ -26,11 +27,12 @@ import Print
 
 data State = State {
         focus :: FocusRing Position,
-        widgets :: Array Position (Editor String Position),
+        widgets :: Array Position Cell,
         env :: Env
     }
 
 data Dir =  N | S | W | E | None
+type Cell = Editor String Position
 
 divideIntoGroupsOf :: Int -> [a] -> [[a]]
 divideIntoGroupsOf n [] = [[]]
@@ -63,7 +65,7 @@ initialState = State {
             position = (0, 0)
         }
 
-editors :: ViewPort -> Array Position (Editor String Position)
+editors :: ViewPort -> Array Position Cell
 editors vp = array ((0, 0), (rows, cols))
     [ ((i, j), editor (i, j) (Just 1) "")
     | i <- [0..rows], j <- [0..cols]
@@ -90,21 +92,24 @@ draw state'
     ws = map border $ elems $ withFocusRing r (renderEditor $ str . head) <$> eds
     Env{formulas = f, view = v, port = p} = env state'
 
-show' :: State -> Dir -> Array Position (Editor String Position)
+show' :: State -> Dir -> Array Position Cell
 show' state@State {widgets = w, env = e} d
     = w //
         [((i,j),
             if not (inFocus pos d (i,j))
-                then newWidget printV v (i, j)
-                else newWidget printF f (i, j))
-        | i <- [0..fst (size p) - 1], j <- [0..snd (size p) - 1]]
+                then refreshWidget printV v (i, j) (gW (i, j))
+                else refreshWidget printF f (i, j) (gW (i, j)))
+        | i <- [0..rows - 1], j <- [0..cols - 1]]
     where
+    gW = getWidget state
+    (rows, cols) = size p
     Env{formulas = f, view = v, port = p} = e
     pos = currentPosition (focus state)
-    newWidget f data' coord =
-        swapEditorContents (f coord data') (getWidget state coord)
 
-swapEditorContents :: String -> Editor String Position -> Editor String Position
+refreshWidget :: (Position -> a -> String) -> a -> Position -> Cell -> Cell
+refreshWidget strF data' coord = swapEditorContents (strF coord data')
+
+swapEditorContents :: String -> Cell -> Cell
 swapEditorContents xs = applyEdit ((`insertString` xs) . clearZipper)
 
 insertString :: TextZipper String -> String -> TextZipper String
@@ -120,7 +125,7 @@ currentPosition :: FocusRing Position -> Position
 currentPosition foc = fromJust $ focusGetCurrent foc
 
 -- Get the widget at the given position
-getWidget :: State -> Position -> Editor String Position
+getWidget :: State -> Position -> Cell
 getWidget state pos = widgets state ! pos
 
 move :: Dir -> (Int, Int)

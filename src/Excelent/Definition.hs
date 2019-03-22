@@ -36,8 +36,8 @@ instance Corecursive Expr
 instance Show Expr where
     show (ConstInt i) = show i
     show (OperPlus i1 i2) = show i1 ++ " + " ++ show i2
-    show (RefRel p) = "rel" ++ show p
-    show (RefAbs p) = "abs" ++ show p
+    show (RefRel p) = "$" ++ show p
+    show (RefAbs p) = show p
 
 type Position = (Int, Int)
 type Size = (Int, Int)

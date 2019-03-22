@@ -42,10 +42,10 @@ primary :: ExprParser
 primary = refRel <|> refAbs <|> constI
 
 refAbs :: ExprParser
-refAbs = RefAbs <$> between (symbol style "abs(") (symbol style ")") intTuple
+refAbs = RefAbs <$> between (symbol style "(") (symbol style ")") intTuple
 
 constI :: ExprParser
 constI = ConstInt . fromInteger <$> integer style
 
 refRel :: ExprParser
-refRel = RefRel <$> between (symbol style "rel(") (symbol style ")") intTuple
+refRel = RefRel <$> between (symbol style "$(") (symbol style ")") intTuple

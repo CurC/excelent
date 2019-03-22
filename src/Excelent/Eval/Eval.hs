@@ -5,6 +5,8 @@ import qualified Data.Set as S
 import Algebra.Graph.AdjacencyMap as G
 import Data.Functor.Foldable
 import Excelent.Definition
+import Data.NumInstances.Tuple
+
 
 evalAlg :: Algebra Expr' (Position -> Env -> (Env, ViewValue))
 evalAlg (ConstInt' i)         pos env = (env, Right i)
@@ -15,11 +17,15 @@ evalAlg (OperPlus' exp1 exp2) pos env = (env2, do
     where
         (env1, vval1) = exp1 pos env
         (env2, vval2) = exp2 pos env1
-evalAlg (RefRel' p) pos env = undefined
-evalAlg (RefAbs' p) pos env = case M.lookup p (view env) of
-    Nothing -> case M.lookup p (formulas env) of
+evalAlg (RefRel' p) pos env = doLookup (pos + p) env
+evalAlg (RefAbs' p) pos env = doLookup p env
+
+doLookup :: Position -> Env -> (Env, ViewValue)
+doLookup pos env = case M.lookup pos (view env) of
+    Nothing -> case M.lookup pos (formulas env) of
         Nothing -> (env, Left "Empty cell referenced.")
-        Just e -> let (newEnv, val) = cata evalAlg e p env in (newEnv {view = M.insert p val (view newEnv)}, val)
+        Just e -> let (newEnv, val) = cata evalAlg e pos env in
+            (newEnv {view = M.insert pos val (view newEnv)}, val)
     Just e -> (env, e)
 
 evalExpr :: Expr -> Position -> Env -> (Env, ViewValue)
