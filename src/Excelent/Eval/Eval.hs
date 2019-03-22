@@ -1,6 +1,7 @@
 module Excelent.Eval.Eval where
 
 import qualified Data.Map as M
+import qualified Data.Set as S
 import Algebra.Graph.AdjacencyMap as G
 import Data.Functor.Foldable
 import Excelent.Definition
@@ -40,3 +41,8 @@ eval env@Env{view = v, formulas = f, port = vp} = resultEnv
 inView :: ViewPort -> [[Position]]
 inView ViewPort {size = (w, h), position = (top, left)} =
     [[(top + i, left + j) | i <- [0..h]] | j <- [0..w]]
+
+invalidateView :: [Position] -> Env -> Env
+invalidateView ps env@Env {view = v} = env { view = M.withoutKeys v set }
+    where
+        set = S.fromList ps

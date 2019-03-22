@@ -51,7 +51,7 @@ data Env = Env {
         formulas :: FormulaData,
         view :: ViewData,
         port :: ViewPort,
-        evalGraph :: NodeGraph
+        graph :: NodeGraph
     } deriving (Show)
 
 data ViewPort = ViewPort {
@@ -63,7 +63,7 @@ initial :: ViewPort -> Env
 initial port = Env {
         formulas = M.empty,
         view = M.empty,
-        evalGraph = GA.empty,
+        graph = GA.empty,
         port = port
     }
 
@@ -77,7 +77,7 @@ env1 :: Env
 env1 = Env {
         formulas = M.insert (0, 0) (OperPlus (RefAbs (1, 0)) (RefAbs (2, 0))) (M.insert (1, 0) (ConstInt 2) (M.insert (2, 0) (ConstInt 7) M.empty)),
         view = M.empty,
-        evalGraph = GA.empty,
+        graph = GA.empty,
         port = ViewPort {
                 position = (0, 0),
                 size = (10, 10)
@@ -88,7 +88,7 @@ env2 :: Env
 env2 = Env {
         formulas = M.insert (0, 0) (RefAbs (1, 0)) (M.insert (1, 0) (RefAbs (0, 0)) M.empty),
         view = M.empty,
-        evalGraph = GA.empty,
+        graph = GA.empty,
         port = ViewPort {
                 position = (0, 0),
                 size = (10, 10)
@@ -99,7 +99,7 @@ env3 :: Env
 env3 = Env {
         formulas = M.insert (0, 0) (RefAbs (1, 0)) (M.insert (1, 0) (ConstInt 2) M.empty),
         view = M.empty,
-        evalGraph = GA.empty,
+        graph = GA.empty,
         port = ViewPort {
                 position = (0, 0),
                 size = (10, 10)
