@@ -9,12 +9,13 @@ import Excelent.Definition
 import qualified Data.Map as M
 import qualified Data.Set as S
 import Data.NumInstances.Tuple
+import Debug.Trace
 
 graphAlg :: Algebra Expr' (Position -> NodeGraph)
 graphAlg (ConstInt' i)         pos = GA.vertex pos
 graphAlg (OperPlus' exp1 exp2) pos = GA.overlay (exp1 pos) (exp2 pos)
-graphAlg (RefRel' p)           pos = GA.edge (p + pos) pos
-graphAlg (RefAbs' p)           pos = GA.edge p pos
+graphAlg (RefRel' p)           pos = GA.edge pos (p + pos)
+graphAlg (RefAbs' p)           pos = GA.edge pos p
 
 node :: Expr -> Position -> NodeGraph
 node = cata graphAlg
@@ -31,10 +32,10 @@ changeCell :: Position -> Expr -> Env -> (Env, [Position])
 changeCell p exp env = (env {graph = newGraph}, p : toRecalculate)
     where
         new = node exp p
-        removed = GA.removeVertex p (graph env)
+        edgeTargetsToRemove = GA.postSet p (graph env)
+        removed = S.foldr (GA.removeEdge p) (graph env) edgeTargetsToRemove
         newGraph = GA.overlay removed new
-        inputs = S.toList $ GA.preSet p (graph env)
-        toRecalculate = dfs inputs removed
+        toRecalculate = dfs [p] (GA.transpose $ graph env)
 
 cycles :: NodeGraph -> [Position]
 cycles g = GA.vertexList treeCycles

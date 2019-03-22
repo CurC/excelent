@@ -24,6 +24,7 @@ import Excelent.Eval.Eval
 import Excelent.Eval.Graph
 import Excelent.Parser
 import Print
+import Debug.Trace
 
 data State = State {
         focus :: FocusRing Position,
@@ -43,8 +44,6 @@ divideIntoGroupsOf n xs =
 --
 -- TODO : Viewport movement
 -- TODO : Fix Viewport boundaries moving left when at zero should do nothing
--- TODO : Fix recalculation based on graph (is being done but does not
---        work for some reason)
 -- TODO : Tests
 -- TODO : Documentation
 --
@@ -103,7 +102,7 @@ show' state@State {widgets = w, env = e} d
     where
     gW = getWidget state
     (rows, cols) = size p
-    Env{formulas = f, view = v, port = p} = e
+    Env{ formulas = f, view = v, port = p } = e
     pos = currentPosition (focus state)
 
 refreshWidget :: (Position -> a -> String) -> a -> Position -> Cell -> Cell

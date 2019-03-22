@@ -60,12 +60,13 @@ data ViewPort = ViewPort {
     } deriving (Show)
 
 initial :: ViewPort -> Env
-initial port = Env {
-        formulas = M.empty,
-        view = M.empty,
-        graph = GA.empty,
-        port = port
-    }
+initial port = env3 {port = port}
+    --     Env {
+    --     formulas = M.empty,
+    --     view = M.empty,
+    --     graph = GA.empty,
+    --     port = port
+    -- }
 
 e1 :: Expr
 e1 = ConstInt 1
@@ -95,9 +96,23 @@ env2 = Env {
             }
     }
 
+relref :: Position -> Expr
+relref = RefRel
+
+plus :: Expr -> Expr -> Expr
+plus = OperPlus
+
+i :: Int -> Expr
+i = ConstInt
+
 env3 :: Env
 env3 = Env {
-        formulas = M.insert (0, 0) (RefAbs (1, 0)) (M.insert (1, 0) (ConstInt 2) M.empty),
+        formulas =
+            M.insert (0, 1) (plus (relref (0, 1)) (i 1))
+                (M.insert (0, 2) (plus (relref (0, 1)) (i 1))
+                    (M.insert (0, 3) (plus (relref (0, 1)) (i 1))
+                        (M.insert (0, 4) (plus (relref (0, 1)) (i 1))
+                            (M.insert (0, 5) (i 1) M.empty)))),
         view = M.empty,
         graph = GA.empty,
         port = ViewPort {
