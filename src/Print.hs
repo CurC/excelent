@@ -6,24 +6,27 @@ import Data.Maybe
 import Data.List
 import qualified Text.PrettyPrint.Boxes as T
 import qualified Data.Map as M
+import Control.Lens hiding (view)
+import Control.Lens.Combinators hiding (view)
+
 
 renderView :: Env -> [[String]]
-renderView Env {view = v, port = vp } = viewData
+renderView env = viewData
     where
-        viewData = map (map (\p -> case p `M.lookup` v of
+        viewData = map (map (\p -> case p `M.lookup` (env ^. view) of
             Nothing -> emptyCellPlaceholder
             Just v -> case v of
                 Left s -> if s == "" then emptyCellPlaceholder else s
                 Right val -> show val)) positions
-        positions = inView vp
+        positions = inView (env ^. port)
 
 renderFormulas :: Env -> [[String]]
-renderFormulas Env {formulas = f, port = vp } = fData
+renderFormulas env = fData
     where
-        fData = map (map (\p -> case p `M.lookup` f of
+        fData = map (map (\p -> case p `M.lookup` (env ^. formulas) of
             Nothing -> emptyCellPlaceholder
             Just x -> show x)) positions
-        positions = inView vp
+        positions = inView (env ^. port)
 
 
 printF :: Position -> FormulaData -> String

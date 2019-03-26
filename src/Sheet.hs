@@ -5,19 +5,21 @@ module Main where
 
 import Data.Array
 import Data.List
+import Control.Lens
+import Control.Lens.Combinators hiding (view)
+import Control.Lens.Getter
+import Control.Lens.Lens (Lens', (&))
+import Control.Lens.Setter
+import Control.Lens.Tuple
+import Data.List (groupBy, intersperse)
 import Data.Maybe
+import Data.Maybe (fromJust)
+import Data.Monoid ((<>))
 import Data.Monoid ((<>))
 import Data.NumInstances.Tuple
 import Data.Text.Zipper
 import qualified Data.Map as M
 import qualified Text.Parsec as P
-import Data.List (groupBy, intersperse)
-import Data.Maybe (fromJust)
-import Data.Monoid ((<>))
-import Control.Lens.Getter
-import Control.Lens.Lens (Lens', (&))
-import Control.Lens.Setter
-import Control.Lens.Tuple
 
 import Brick.AttrMap
 import Brick.Focus
@@ -25,11 +27,10 @@ import Brick.Main
 import Brick.Types
 import Brick.Util
 import Brick.Widgets.Border
+import Brick.Widgets.Border.Style
 import Brick.Widgets.Center
 import Brick.Widgets.Core
 import Brick.Widgets.Edit
-import Brick.Widgets.Border
-import Brick.Widgets.Border.Style
 import Graphics.Vty
 import Graphics.Vty.Attributes
 import Graphics.Vty.Input.Events
@@ -40,6 +41,9 @@ import Excelent.Eval.Graph
 import Excelent.Parser
 import Print
 
+data Dir =  N | S | W | E | None
+type Cell = Editor String Position
+
 data State = State {
         _focusRing' :: FocusRing Position,
         _widgets :: Array Position Cell,
@@ -48,9 +52,6 @@ data State = State {
     }
 
 makeLenses ''State
-
-data Dir =  N | S | W | E | None
-type Cell = Editor String Position
 
 toList' :: Ix a => Array (a, a) b -> [[b]]
 toList' = (mapped.mapped %~ snd)
@@ -75,16 +76,16 @@ main = defaultMain app initialState
 
 initialState :: State
 initialState = State {
-        focus = focusRing $ indices editors',
-        widgets = editors',
-        isEditing = False,
-        env = initializeGraph $ eval $ initial viewport
+        _focus = focusRing $ indices editors',
+        _widgets = editors',
+        _isEditing = False,
+        _env = initializeGraph $ eval $ initial viewport
     }
     where
         editors' = editors viewport
         viewport = ViewPort {
-            size = (10, 6),
-            position = (0, 0)
+            _size = (10, 6),
+            _position = (0, 0)
         }
 
 editors :: ViewPort -> Array Position Cell

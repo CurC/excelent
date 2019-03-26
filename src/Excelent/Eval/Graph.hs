@@ -9,7 +9,8 @@ import Excelent.Definition
 import qualified Data.Map as M
 import qualified Data.Set as S
 import Data.NumInstances.Tuple
-import Debug.Trace
+import Control.Lens hiding (view)
+import Control.Lens.Combinators hiding (view)
 
 graphAlg :: Algebra Expr' (Position -> NodeGraph)
 graphAlg (ConstInt' i)     pos = GA.vertex pos
@@ -26,7 +27,7 @@ initializeGraph env
         foldr (\(pos, exp) g -> GA.overlay (node exp pos) g)
             GA.empty (M.toList f)
     where
-        f = formulas env
+        f = env ^. formulas
 
 changeCell :: Position -> Expr -> Env -> (Env, [Position])
 changeCell p exp env = (env & graph .~ newGraph,  p : toRecalculate)
@@ -47,6 +48,6 @@ insertAndEvalGraph :: Position -> Expr -> Env -> Env
 insertAndEvalGraph pos expr env
     = foldr evalCell invalidated toRecalculate
     where
-        inserted = M.insert pos expr f
-        (envWithGraph, toRecalculate) = changeCell pos expr (env & formulas  .~ inserted)
+        inserted = env & formulas %~ M.insert pos expr
+        (envWithGraph, toRecalculate) = changeCell pos expr inserted
         invalidated = invalidateView toRecalculate envWithGraph

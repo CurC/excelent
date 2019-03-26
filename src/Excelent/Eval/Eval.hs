@@ -6,7 +6,7 @@ import Algebra.Graph.AdjacencyMap as G
 import Data.Functor.Foldable
 import Excelent.Definition
 import Data.NumInstances.Tuple
-import Control.Lens
+import Control.Lens hiding (view)
 import Control.Lens.Combinators hiding (view)
 
 evalAlg :: Algebra Expr' (Position -> Env -> (Env, ViewValue))
@@ -33,11 +33,11 @@ evalExpr :: Expr -> Position -> Env -> (Env, ViewValue)
 evalExpr = cata evalAlg
 
 evalCell :: Position -> Env -> Env
-evalCell pos env = case M.lookup pos (view env) of
+evalCell pos env = case M.lookup pos (env ^. view) of
     Just v -> env
-    Nothing -> case M.lookup pos (formulas env) of
-        Just expr -> env^.view %~ M.insert pos (snd $ evalExpr expr pos env)
-        Nothing -> env^.view %~ M.insert pos (Left "")
+    Nothing -> case M.lookup pos (env ^. formulas) of
+        Just expr -> env & view %~ M.insert pos (snd $ evalExpr expr pos env)
+        Nothing -> env & view %~ M.insert pos (Left "")
 
 eval :: Env -> Env
 eval env = resultEnv
@@ -52,6 +52,6 @@ inView vp =
         j <- [0..vp ^. size . _2]]
 
 invalidateView :: [Position] -> Env -> Env
-invalidateView ps env@Env {view = v} = env & view .~ M.withoutKeys v set
+invalidateView ps env = env & view %~ (`M.withoutKeys` set)
     where
         set = S.fromList ps
