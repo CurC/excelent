@@ -6,10 +6,11 @@ import Algebra.Graph.AdjacencyMap as G
 import Data.Functor.Foldable
 import Excelent.Definition
 import Data.NumInstances.Tuple
-
+import Control.Lens
+import Control.Lens.Combinators hiding (view)
 
 evalAlg :: Algebra Expr' (Position -> Env -> (Env, ViewValue))
-evalAlg (ConstInt' i)         pos env = (env, Right i)
+evalAlg (ConstInt' i)     _ env = (env, Right i)
 evalAlg (Plus' exp1 exp2) pos env = (env2, do
         i <- vval1
         j <- vval2
@@ -35,18 +36,18 @@ evalCell :: Position -> Env -> Env
 evalCell pos env = case M.lookup pos (view env) of
     Just v -> env
     Nothing -> case M.lookup pos (formulas env) of
-        Just expr -> env { view = M.insert pos (snd $ evalExpr expr pos env) (view env) }
-        Nothing -> env { view = M.insert pos (Left "") (view env) }
+        Just expr -> env^.view %~ M.insert pos (snd $ evalExpr expr pos env)
+        Nothing -> env^.view %~ M.insert pos (Left "")
 
 eval :: Env -> Env
-eval env@Env{view = v, formulas = f, port = vp} = resultEnv
+eval env = resultEnv
     where
         resultEnv = foldr evalCell env positions
-        positions = concat (inView vp)
+        positions = concat $ inView $ env^.port
 
 inView :: ViewPort -> [[Position]]
-inView ViewPort {size = (w, h), position = (top, left)} =
-    [[(top + i, left + j) | i <- [0..h]] | j <- [0..w]]
+inView vp =
+    [[(vp^.size._1 + i, vp^.size._2 + j) | i <- [0..vp^.size._2]] | j <- [0..vp^.size._1]]
 
 invalidateView :: [Position] -> Env -> Env
 invalidateView ps env@Env {view = v} = env { view = M.withoutKeys v set }
