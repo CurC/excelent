@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -46,16 +47,19 @@ type ViewValue = (Either String Int)
 type NodeGraph = GA.AdjacencyMap Position
 
 data Env = Env {
-        formulas :: FormulaData,
-        view :: ViewData,
-        port :: ViewPort,
-        graph :: NodeGraph
+        _formulas :: FormulaData,
+        _view :: ViewData,
+        _port :: ViewPort,
+        _graph :: NodeGraph
     } deriving (Show)
 
 data ViewPort = ViewPort {
-        position :: Position,
-        size :: Size
+        _position :: Position,
+        _size :: Size
     } deriving (Show)
+
+makeLenses ''Env
+makeLenses ''ViewPort
 
 initial :: ViewPort -> Env
 initial port = env3 {port = port}
