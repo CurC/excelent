@@ -10,7 +10,7 @@ import Data.NumInstances.Tuple
 
 evalAlg :: Algebra Expr' (Position -> Env -> (Env, ViewValue))
 evalAlg (ConstInt' i)         pos env = (env, Right i)
-evalAlg (OperPlus' exp1 exp2) pos env = (env2, do
+evalAlg (Plus' exp1 exp2) pos env = (env2, do
         i <- vval1
         j <- vval2
         return $ i + j)

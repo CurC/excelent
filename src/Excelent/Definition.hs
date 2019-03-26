@@ -14,15 +14,13 @@ import qualified Data.Map as M
 import Algebra.Graph.AdjacencyMap as GA
 
 data Expr = ConstInt Int
-    | ConstFloat Float
-    | OperPlus Expr Expr
+    | Plus Expr Expr
     | RefRel Position
     | RefAbs Position
     deriving (Generic, Read)
 
 data Expr' a = ConstInt' Int
-    | ConstFloat' Float
-    | OperPlus' a a
+    | Plus' a a
     | RefRel' Position
     | RefAbs' Position
     deriving (Functor, Generic)
@@ -35,7 +33,7 @@ instance Corecursive Expr
 
 instance Show Expr where
     show (ConstInt i) = show i
-    show (OperPlus i1 i2) = show i1 ++ " + " ++ show i2
+    show (Plus i1 i2) = show i1 ++ " + " ++ show i2
     show (RefRel p) = "$" ++ show p
     show (RefAbs p) = show p
 
@@ -76,7 +74,7 @@ e2 = RefAbs (0, 0)
 
 env1 :: Env
 env1 = Env {
-        formulas = M.insert (0, 0) (OperPlus (RefAbs (1, 0)) (RefAbs (2, 0))) (M.insert (1, 0) (ConstInt 2) (M.insert (2, 0) (ConstInt 7) M.empty)),
+        formulas = M.insert (0, 0) (Plus (RefAbs (1, 0)) (RefAbs (2, 0))) (M.insert (1, 0) (ConstInt 2) (M.insert (2, 0) (ConstInt 7) M.empty)),
         view = M.empty,
         graph = GA.empty,
         port = ViewPort {
@@ -100,7 +98,7 @@ relref :: Position -> Expr
 relref = RefRel
 
 plus :: Expr -> Expr -> Expr
-plus = OperPlus
+plus = Plus
 
 i :: Int -> Expr
 i = ConstInt

@@ -13,7 +13,7 @@ import Debug.Trace
 
 graphAlg :: Algebra Expr' (Position -> NodeGraph)
 graphAlg (ConstInt' i)         pos = GA.vertex pos
-graphAlg (OperPlus' exp1 exp2) pos = GA.overlay (exp1 pos) (exp2 pos)
+graphAlg (Plus' exp1 exp2) pos = GA.overlay (exp1 pos) (exp2 pos)
 graphAlg (RefRel' p)           pos = GA.edge pos (p + pos)
 graphAlg (RefAbs' p)           pos = GA.edge pos p
 

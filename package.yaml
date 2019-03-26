@@ -67,3 +67,8 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - excelent
+    - tasty
+    - tasty-quickcheck
+    - QuickCheck
+    - containers
+    - algebraic-graphs

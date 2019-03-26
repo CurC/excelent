@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 0417931d6f3bb830b511a785d9b47479357f8ececa847621c254ecdb762a9e65
+-- hash: 2d41794f480339c6d400c14da36fa1a99bc09fcecfdb607a5a9e2b4ca4c22cef
 
 name:           excelent
 version:        0.1.0.0
@@ -79,11 +79,17 @@ test-suite excelent-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Specs.Eval
       Paths_excelent
   hs-source-dirs:
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      QuickCheck
+    , algebraic-graphs
+    , base >=4.7 && <5
+    , containers
     , excelent
+    , tasty
+    , tasty-quickcheck
   default-language: Haskell2010
