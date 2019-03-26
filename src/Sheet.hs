@@ -1,102 +1,118 @@
-module Sheet where
+{-# LANGUAGE OverloadedStrings #-}
+module Main where
 
 import Data.Array
-import Data.Maybe
+import Data.List (groupBy, intersperse)
+import Data.Maybe (fromJust)
 import Data.Monoid ((<>))
-import Data.Text.Zipper
-import Data.NumInstances.Tuple
 
 import Brick.AttrMap
 import Brick.Focus
 import Brick.Main
 import Brick.Types
+import Brick.Util
+import Brick.Widgets.Border
+import Brick.Widgets.Center
 import Brick.Widgets.Core
 import Brick.Widgets.Edit
-import Brick.Widgets.Border
-import Graphics.Vty
+import Control.Lens.Getter
+import Control.Lens.Lens (Lens', (&))
+import Control.Lens.Setter
+import Control.Lens.Tuple
+import Graphics.Vty.Attributes
+import Graphics.Vty.Input.Events
 
-import Excelent.Eval.Eval
+type State =
+    ( Array (Int, Int) (Editor String (Int, Int))
+    , FocusRing (Int, Int)
+    , Bool
+    )
 
-type State = (FocusRing Position, Array Position (Editor String Position))
-type Position = (Int, Int)
+toList' :: Ix a => Array (a, a) b -> [[b]]
+toList' = (mapped.mapped %~ snd)
+    . groupBy (\x y -> x^._1._1 == y^._1._1)
+    . assocs
 
-data Dir =  N | S | W | E
-
-divideIntoGroupsOf :: Int -> [a] -> [[a]]
-divideIntoGroupsOf n [] = [[]]
-divideIntoGroupsOf n xs =
-    let (xs1, xs2) = splitAt n xs in xs1 : divideIntoGroupsOf n xs2
+-- | NOTE that focus is not a valid Lens.
+-- However, it suffices for our purposes.
+focus :: Eq n => Lens' (FocusRing n) n
+focus f = \r -> flip focusSetCurrent r <$> f (fromJust $ focusGetCurrent r)
 
 main :: IO State
 main = defaultMain app initialState
 
 initialState :: State
-initialState = (focusRing $ indices editors, editors)
+initialState = (editors, focusRing $ indices editors, isEditing)
+  where
+    editors = array ((1, 1), (numberOfRows, numberOfColumns))
+        [ ((i, j), ed)
+        | i <- [1..numberOfRows]
+        , j <- [1..numberOfColumns]
+        , let ed = editor (i, j) (Just 1) mempty
+        ]
+    (numberOfRows, numberOfColumns) = (8, 8)
+    isEditing = False
 
-editors :: Array Position (Editor String Position)
-editors = array ((1, 1), (numberOfRows, numberOfColumns))
-    [ ((i, j), editor (i, j) (Just 1) "")
-    | i <- [1..numberOfRows], j <- [1..numberOfColumns]
-    ]
-
-numberOfRows, numberOfColumns :: Int
-numberOfRows = 14
-numberOfColumns = 4
-
-app :: App State e Position
+app :: App State e (Int, Int)
 app = App
     { appDraw = draw
-    , appChooseCursor = focusRingCursor fst
+    , appChooseCursor = chooseCursor
     , appHandleEvent = handleEvent
     , appStartEvent = return
-    , appAttrMap = const $ attrMap defAttr []
+    , appAttrMap = attrMap'
     }
 
-draw :: State -> [Widget Position]
-draw (r, eds) = [vBox $ hBox <$> divideIntoGroupsOf numberOfColumns ws]
+draw :: State -> [Widget (Int, Int)]
+draw s = [table]
   where
-    ws = map border $ elems $ withFocusRing r (renderEditor $ str . head) <$> eds
+    table = joinBorders
+        $ vBox
+        $ intersperse hBorder
+        $ tableData & mapped %~ vLimit 1 . hBox . intersperse vBorder
+    tableData = zipWith (:) headerColumnData (headerRowData:rowData)
+    (numberOfRows, numberOfColumns) = (bounds $ s^._1)^._2
+    headerColumnData =
+        [ withAttr n $ padLeftRight 1 $ str $ if i == 0 then " " else show i
+        | i <- [0..numberOfRows]
+        , let isFocused = s^._2.focus._1 == i
+        , let n = "headerCell" <> if isFocused then "focused" else mempty
+        ]
+    headerRowData =
+        [ withAttr n $ hCenter $ str $ show j
+        | j <- [1..numberOfColumns]
+        , let isFocused = s^._2.focus._2 == j
+        , let n = "headerCell" <> if isFocused then "focused" else mempty
+        ]
+    rowData = toList' $ s^._1 & mapped %~
+        padLeftRight 1 . withFocusRing (s^._2) (renderEditor $ str . head)
 
---Insert result of eval, except for the one in focus.
-updateEditors :: State -> Dir -> State
-updateEditors (r,eds) dir = case dir of
-    W -> (focus w, showData w)
-    E -> (focus e, showData e)
-    N -> (focus n, showData n)
-    S -> (focus s, showData s)    
-  where
-    focus d = focusSetCurrent (pos + d) r
-    showData d = eds // [((i,j), if not (inFocus (i,j) d) then applyEdit (insertChar 'a' . clearZipper) (ed i j) else ed i j) 
-                      | i <- [1..numberOfRows], j <- [1..numberOfColumns]
-                      ]
-    inFocus e d = pos + d == e
-    pos = fromJust $ focusGetCurrent r
-    ed i j = eds ! (i,j)
-    w = ( 0,-1)
-    e = ( 0, 1)
-    n = (-1, 0)
-    s = ( 1, 0)
+chooseCursor :: State
+             -> [CursorLocation (Int, Int)]
+             -> Maybe (CursorLocation (Int, Int))
+chooseCursor s = if s^._3 then focusRingCursor (view _2) s else const Nothing
 
-{-
-Array Position (Editor String Position)
-updateEditors (r,eds) = eds // [((i,j), if not (inFocus (i, j)) then applyEdit (insertChar 'a' . clearZipper) (ed i j) else ed i j) 
-                               | i <- [1..numberOfRows], j <- [1..numberOfColumns]
-                               ]
-    where ed i j = eds ! (i,j)
-          inFocus e = fromJust (focusGetCurrent r) == e
--}
-handleEvent :: State -> BrickEvent Position e -> EventM Position (Next State)
-handleEvent s@(r, eds) (VtyEvent e) = case e of
-    EvKey KLeft  [] -> continue $ updateEditors s W
-    EvKey KRight [] -> continue $ updateEditors s E
-    EvKey KUp    [] -> continue $ updateEditors s N
-    EvKey KDown  [] -> continue $ updateEditors s S
-    EvKey KEnter [] -> continue $ updateEditors s S
-    EvKey KEsc   [] -> halt s
-    _               -> do
-        ed' <- handleEditorEvent e ed
-        continue (r, eds // [(pos, ed')])
+handleEvent :: State
+            -> BrickEvent (Int, Int) e
+            -> EventM (Int, Int) (Next State)
+handleEvent s (VtyEvent e@(EvKey key [])) = if s^._3 then handler1 else handler2
   where
-    ed = eds ! pos
-    pos = fromJust $ focusGetCurrent r
+    handler1 = case key of
+        KEsc     -> continue $ s & _3 %~ not
+        KEnter   -> handleEvent (s & _3 %~ not) (VtyEvent $ EvKey KDown [])
+        _        -> do
+            ed <- handleEditorEvent e $ (s^._1) ! (s^._2.focus)
+            continue $ s & _1 %~ (// [(s^._2.focus, ed)])
+    handler2 = continue $ case key of
+        KEnter   -> s & _3 %~ not
+        KLeft    -> s & _2.focus._2 -~ 1
+        KRight   -> s & _2.focus._2 +~ 1
+        KUp      -> s & _2.focus._1 -~ 1
+        KDown    -> s & _2.focus._1 +~ 1
+        _        -> s
 handleEvent s _ = continue s
+
+attrMap' :: State -> AttrMap
+attrMap' = const $ attrMap defAttr
+    [ ("headerCell" <> "focused", bg brightBlack)
+    , (editFocusedAttr, bg blue)
+    ]
