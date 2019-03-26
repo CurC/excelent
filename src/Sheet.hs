@@ -87,7 +87,7 @@ initialState = State {
     where
         editors' = editors viewport
         viewport = ViewPort {
-            _size = (10, 6),
+            _size = (11, 6),
             _position = (0, 0)
         }
 
@@ -104,7 +104,7 @@ app = App
     { appDraw = draw
     , appChooseCursor = chooseCursor
     , appHandleEvent = handleEvent
-    , appStartEvent = return
+    , appStartEvent = return . refreshWindow
     , appAttrMap = attrMap'
     }
 
@@ -272,10 +272,14 @@ updateEditors state = state' & widgets .~ show' state'
     insertedText = getEditContents ((state ^. widgets) ! pos)
     parsed       = P.parse expression "" (concat insertedText)
     newEnv       = case parsed of
-        Left err -> state ^. env
+        Left err   -> state ^. env
         Right expr -> insertAndEvalGraph pos expr (state ^. env)
     state' = state & env .~ newEnv
-    env' = state' ^. env
+    env'   = state' ^. env
+
+--Insert result of eval, except for the one in focus.
+refreshWindow :: State -> State
+refreshWindow state = state & widgets .~ show' state
 
 handleEvent :: State
             -> BrickEvent (Int, Int) e
@@ -286,15 +290,15 @@ handleEvent s (VtyEvent e@(EvKey key []))
         else handler2
   where
     handler1 = case key of
-        KChar c  -> if c == 'q' then halt s else continue s
-        KEsc     -> continue $ updateEditors s & isEditing %~ not
-        KEnter   -> handleEvent (updateEditors s & isEditing %~ not) (VtyEvent $ EvKey KDown [])
+        KChar 'q'  -> halt s
+        -- KEsc     -> continue $ updateEditors (s & isEditing %~ not)
+        KEnter   -> handleEvent (updateEditors (s & isEditing %~ not)) (VtyEvent $ EvKey KDown [])
         _        -> do
             ed <- handleEditorEvent e $ (s ^. widgets) ! (s^. focusRing' .focus)
             continue $ s & widgets %~ (// [(s^.focusRing'.focus, ed)])
     handler2 = case key of
         KChar c  -> if c == 'q' then halt s else continue s
-        KEnter   -> continue $ updateEditors (s & isEditing %~ not)
+        KEnter   -> continue $ refreshWindow (s & isEditing %~ not)
         KLeft    -> continue $ s & focusRing' . focus . _2 -~ 1
         KRight   -> continue $ s & focusRing' . focus . _2 +~ 1
         KUp      -> continue $ s & focusRing' . focus . _1 -~ 1
