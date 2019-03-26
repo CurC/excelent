@@ -45,17 +45,19 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - excelent
-    - containers
-    - recursion-schemes
-    - mtl
-    - transformers
-    - data-default
-    - brick
     - array
-    - text-zipper
-    - vty
+    - brick
+    - containers
+    - data-default
+    - excelent
+    - lens
+    - mtl
     - NumInstances
+    - parsec
+    - recursion-schemes
+    - text-zipper
+    - transformers
+    - vty
 
 tests:
   excelent-test:

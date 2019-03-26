@@ -1,4 +1,4 @@
-module Print where
+module Excelent.Print where
 
 import Excelent.Definition
 import Excelent.Eval.Eval

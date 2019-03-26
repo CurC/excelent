@@ -9,6 +9,7 @@ import Data.NumInstances.Tuple
 import Control.Lens hiding (view)
 import Control.Lens.Combinators hiding (view)
 
+-- | The
 evalAlg :: Algebra Expr' (Position -> Env -> (Env, ViewValue))
 evalAlg (ConstInt' i)     _   env = (env, Right i)
 evalAlg (Plus' exp1 exp2) pos env = (env2, do
