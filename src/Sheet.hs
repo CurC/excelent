@@ -242,7 +242,7 @@ handleEvent :: State
 handleEvent s (VtyEvent e@(EvKey key [])) = if s^. isEditing then handler1 else handler2
   where
     handler1 = case key of
-        KEsc     -> continue $ (updateEditors s) & isEditing %~ not &
+        KEsc     -> continue $ updateEditors s & isEditing %~ not
         KEnter   -> handleEvent (updateEditors s & isEditing %~ not) (VtyEvent $ EvKey KDown [])
         _        -> do
             ed <- handleEditorEvent e $ (s ^. widgets) ! (s^. focusRing' .focus)
