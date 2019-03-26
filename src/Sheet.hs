@@ -212,7 +212,7 @@ draw s = [table]
         | j <- [1..numberOfColumns]
         , let isFocused = s^.focusRing'.focus._2 == j
         , let n = "headerCell" <> if isFocused then "focused" else mempty
-
+        ]
     rowData = toList' $ s ^. widgets & mapped %~
         padLeftRight 1 . withFocusRing (s^.focusRing') (renderEditor $ str . head)
 
@@ -242,7 +242,7 @@ handleEvent :: State
 handleEvent s (VtyEvent e@(EvKey key [])) = if s^. isEditing then handler1 else handler2
   where
     handler1 = case key of
-        KEsc     -> continue $ (updateEditors s) & isEditing %~ not &
+        KEsc     -> continue $ updateEditors s & isEditing %~ not
         KEnter   -> handleEvent (updateEditors s & isEditing %~ not) (VtyEvent $ EvKey KDown [])
         _        -> do
             ed <- handleEditorEvent e $ (s ^. widgets) ! (s^. focusRing' .focus)

@@ -10,7 +10,7 @@ import Control.Lens
 import Control.Lens.Combinators hiding (view)
 
 evalAlg :: Algebra Expr' (Position -> Env -> (Env, ViewValue))
-evalAlg (ConstInt' i)     _ env = (env, Right i)
+evalAlg (ConstInt' i)     _   env = (env, Right i)
 evalAlg (Plus' exp1 exp2) pos env = (env2, do
         i <- vval1
         j <- vval2
@@ -22,11 +22,11 @@ evalAlg (RefRel' p) pos env = doLookup (pos + p) env
 evalAlg (RefAbs' p) pos env = doLookup p env
 
 doLookup :: Position -> Env -> (Env, ViewValue)
-doLookup pos env = case M.lookup pos (view env) of
-    Nothing -> case M.lookup pos (formulas env) of
+doLookup pos env = case M.lookup pos (env ^. view) of
+    Nothing -> case M.lookup pos (env ^. formulas) of
         Nothing -> (env, Left "Empty cell referenced.")
         Just e -> let (newEnv, val) = cata evalAlg e pos env in
-            (newEnv {view = M.insert pos val (view newEnv)}, val)
+            (newEnv & view %~ M.insert pos val, val)
     Just e -> (env, e)
 
 evalExpr :: Expr -> Position -> Env -> (Env, ViewValue)
@@ -47,9 +47,11 @@ eval env = resultEnv
 
 inView :: ViewPort -> [[Position]]
 inView vp =
-    [[(vp^.size._1 + i, vp^.size._2 + j) | i <- [0..vp^.size._2]] | j <- [0..vp^.size._1]]
+    [[(vp ^. position . _1 + i, vp ^. position . _2 + j) |
+        i <- [0..vp ^. size . _1]] |
+        j <- [0..vp ^. size . _2]]
 
 invalidateView :: [Position] -> Env -> Env
-invalidateView ps env@Env {view = v} = env { view = M.withoutKeys v set }
+invalidateView ps env@Env {view = v} = env & view .~ M.withoutKeys v set
     where
         set = S.fromList ps
