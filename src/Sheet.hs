@@ -212,7 +212,7 @@ draw s = [table]
         | j <- [1..numberOfColumns]
         , let isFocused = s^.focusRing'.focus._2 == j
         , let n = "headerCell" <> if isFocused then "focused" else mempty
-
+        ]
     rowData = toList' $ s ^. widgets & mapped %~
         padLeftRight 1 . withFocusRing (s^.focusRing') (renderEditor $ str . head)
 

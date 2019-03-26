@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 2d41794f480339c6d400c14da36fa1a99bc09fcecfdb607a5a9e2b4ca4c22cef
+-- hash: f6a864a52f2c6a2f29127678621e82dcc7de02443e4570bed173003a5b3d53d3
 
 name:           excelent
 version:        0.1.0.0
@@ -47,6 +47,7 @@ library
     , boxes
     , brick
     , containers
+    , lens
     , parsec
     , recursion-schemes
     , text-zipper

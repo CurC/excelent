@@ -35,7 +35,7 @@ library:
   - array
   - text-zipper
   - vty
-
+  - lens
 executables:
   excelent-exe:
     main:                Main.hs

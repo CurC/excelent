@@ -12,30 +12,30 @@ import Data.NumInstances.Tuple
 import Debug.Trace
 
 graphAlg :: Algebra Expr' (Position -> NodeGraph)
-graphAlg (ConstInt' i)         pos = GA.vertex pos
+graphAlg (ConstInt' i)     pos = GA.vertex pos
 graphAlg (Plus' exp1 exp2) pos = GA.overlay (exp1 pos) (exp2 pos)
-graphAlg (RefRel' p)           pos = GA.edge pos (p + pos)
-graphAlg (RefAbs' p)           pos = GA.edge pos p
+graphAlg (RefRel' p)       pos = GA.edge pos (p + pos)
+graphAlg (RefAbs' p)       pos = GA.edge pos p
 
 node :: Expr -> Position -> NodeGraph
 node = cata graphAlg
 
 initializeGraph :: Env -> Env
 initializeGraph env
-    = env { graph =
+    = env & graph .~
         foldr (\(pos, exp) g -> GA.overlay (node exp pos) g)
-            GA.empty (M.toList f)}
+            GA.empty (M.toList f)
     where
         f = formulas env
 
 changeCell :: Position -> Expr -> Env -> (Env, [Position])
-changeCell p exp env = (env {graph = newGraph}, p : toRecalculate)
+changeCell p exp env = (env & graph .~ newGraph,  p : toRecalculate)
     where
         new = node exp p
-        edgeTargetsToRemove = GA.postSet p (graph env)
-        removed = S.foldr (GA.removeEdge p) (graph env) edgeTargetsToRemove
+        edgeTargetsToRemove = GA.postSet p (env ^. graph)
+        removed = S.foldr (GA.removeEdge p) (env ^. graph) edgeTargetsToRemove
         newGraph = GA.overlay removed new
-        toRecalculate = dfs [p] (GA.transpose $ graph env)
+        toRecalculate = dfs [p] (GA.transpose $ env ^. graph)
 
 cycles :: NodeGraph -> [Position]
 cycles g = GA.vertexList treeCycles
@@ -44,9 +44,9 @@ cycles g = GA.vertexList treeCycles
         treeCycles = GA.overlays $ filter (not . GAA.isAcyclic) trees
 
 insertAndEvalGraph :: Position -> Expr -> Env -> Env
-insertAndEvalGraph pos expr env@Env { formulas = f }
+insertAndEvalGraph pos expr env
     = foldr evalCell invalidated toRecalculate
     where
         inserted = M.insert pos expr f
-        (envWithGraph, toRecalculate) = changeCell pos expr env{formulas = inserted}
+        (envWithGraph, toRecalculate) = changeCell pos expr (env & formulas  .~ inserted)
         invalidated = invalidateView toRecalculate envWithGraph
