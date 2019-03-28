@@ -13,6 +13,6 @@ printF p f = case M.lookup p f of
 printV :: Position -> ViewData -> String
 printV p v = case M.lookup p v of
     Just x -> case x of
-        Left s -> ""
+        Left s -> s
         Right i -> show i
     Nothing -> ""
