@@ -3,12 +3,14 @@ module Excelent.Eval.Graph where
 import Algebra.Graph
 import Algebra.Graph.AdjacencyMap as GA
 import Algebra.Graph.AdjacencyMap.Algorithm as GAA
+import Algebra.Graph.NonEmpty.AdjacencyMap as GNA
 import Data.Functor.Foldable
 import Excelent.Eval.Eval
 import Excelent.Definition
 import qualified Data.Map as M
 import qualified Data.Set as S
 import Data.NumInstances.Tuple
+import Data.List.NonEmpty hiding (length)
 import Control.Lens hiding (view)
 import Control.Lens.Combinators hiding (view)
 
@@ -38,16 +40,15 @@ changeCell p exp env = (env & graph .~ newGraph,  p : toRecalculate)
         newGraph = GA.overlay removed new
         toRecalculate = dfs [p] (GA.transpose $ env ^. graph)
 
-cycles :: NodeGraph -> [Position]
-cycles g = GA.vertexList treeCycles
-    where
-        trees = map GA.tree (GAA.dfsForest g)
-        treeCycles = GA.overlays $ filter (not . GAA.isAcyclic) trees
-
 insertAndEvalGraph :: Position -> Expr -> Env -> Env
 insertAndEvalGraph pos expr env
-    = foldr evalCell invalidated toRecalculate
+    = foldr evalCell cycles toRecalculate
     where
         inserted = env & formulas %~ M.insert pos expr
         (envWithGraph, toRecalculate) = changeCell pos expr inserted
         invalidated = invalidateView toRecalculate envWithGraph
+        cyclicGraphs = GA.vertexList (GAA.scc $ envWithGraph^.graph)
+        cycles = foldr insertError invalidated (concatMap filterCycle cyclicGraphs)
+        insertError v env = env& view %~ M.insert v (Left "cycle detected")
+        filterCycle = (\l -> if length l > 1 then l else []) . toList . GNA.vertexList1
+        
