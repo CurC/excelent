@@ -29,12 +29,13 @@ evalAlg (RefAbsF p) pos env = doLookup p env
 --   calculated, or calculate it and save any cells calculated along the way in
 --   the environment
 doLookup :: Position -> Env -> (Env, ViewValue)
-doLookup pos env = case M.lookup pos (env ^. view) of
-    Nothing -> case M.lookup pos (env ^. formulas) of
-        Nothing -> (env, Left "Empty cell referenced.")
-        Just e -> let (newEnv, val) = cata evalAlg e pos env in
+doLookup pos env = case M.lookup pos (env^.formulas) of 
+    Nothing -> (env, Left "err: Empty")
+    Just e -> case M.lookup pos (env^.view) of
+        Nothing -> let (newEnv, val) = cata evalAlg e pos env in
             (newEnv & view %~ M.insert pos val, val)
-    Just e -> (env, e)
+        Just e' -> (env, e')
+        
 
 -- | Evaluate the given expression using the current position and its environment.
 --   This is done using a catamorphism, which is automatically derived using the
