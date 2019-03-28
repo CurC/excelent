@@ -1,3 +1,6 @@
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
+
 module Main where
 
 import Data.Array
@@ -96,7 +99,7 @@ editors vp = array ((0, 0), (rows, cols))
     | i <- [0..rows], j <- [0..cols]
     ]
   where
-    (rows, cols) = vp & size.both ~- 1
+    (rows, cols) = (vp & size.both -~ 1)^.size
 
 app :: App State e (Int, Int)
 app = App
@@ -108,7 +111,7 @@ app = App
     }
 
 swapEditorContentsWith :: String -> Cell -> Cell
-swapEditorContentsWith xs = applyEdit ((`insertMany` xs) . clearZipper)
+swapEditorContentsWith xs = applyEdit (insertMany xs . clearZipper)
 
 -- | Extracts the editor at the given position from the state.
 getEditor :: State -> Position -> Cell
@@ -125,7 +128,7 @@ show' state = state & widgets %~ (// editors')
         | i <- [0..rows - 1], j <- [0..cols - 1]
         , let editors' = if state^.focusRing'.focus == (i, j) && state^.isEditing
                          then swapEditorContentsWith (printF (i, j) (state^.env.formulas)) (gW (i, j))
-                         else swapEditorContentsWith (printF (i, j) (state^.env.view)) (gW (i, j))
+                         else swapEditorContentsWith (printV (i, j) (state^.env.view)) (gW (i, j))
         ]
     gW = getEditor state
     (rows, cols) = state^.env.port.size

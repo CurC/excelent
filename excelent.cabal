@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 7c7f801056efe9634bb4e799b07c6fbef2c50f3b8470d61645686f63aa5f0d1b
+-- hash: 94fff64fc71e8bb5bc461cb98e70e0ad1bbb5cc0e61134fe3b495b70b6799358
 
 name:           excelent
 version:        0.1.0.0
@@ -27,24 +27,24 @@ source-repository head
 
 library
   exposed-modules:
-      Definition
+      Excelent.Definition
       Excelent.Eval.Eval
       Excelent.Eval.Graph
       Excelent.Parser
-      Lib
-      Print
-      Sheet
+      Excelent.Print
   other-modules:
       Paths_excelent
   hs-source-dirs:
       src
   build-depends:
-      algebraic-graphs
+      NumInstances
+    , algebraic-graphs
     , array
     , base >=4.7 && <5
     , boxes
     , brick
     , containers
+    , lens
     , parsec
     , recursion-schemes
     , text-zipper
@@ -66,7 +66,9 @@ executable excelent-exe
     , containers
     , data-default
     , excelent
+    , lens
     , mtl
+    , parsec
     , recursion-schemes
     , text-zipper
     , transformers
@@ -77,11 +79,19 @@ test-suite excelent-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Specs.Arbitrary
+      Specs.Eval
+      Specs.Graph
       Paths_excelent
   hs-source-dirs:
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      QuickCheck
+    , algebraic-graphs
+    , base >=4.7 && <5
+    , containers
     , excelent
+    , tasty
+    , tasty-quickcheck
   default-language: Haskell2010

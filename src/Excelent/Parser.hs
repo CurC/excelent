@@ -8,7 +8,7 @@ module Excelent.Parser where
 -- Output: RefRel (1, -1)
 --
 -- Input: "[1, 2] + $[1, -1]"
--- Output: OperPlus (RefAbs (1, 2)) (RefRel (1, -1))
+-- Output: Plus (RefAbs (1, 2)) (RefRel (1, -1))
 
 
 import Text.Parsec
@@ -16,7 +16,7 @@ import Text.Parsec.Combinator
 import Text.Parsec.Char
 import Text.Parsec.Token
 import Text.Parsec.Language
-import Definition
+import Excelent.Definition
 
 type ExprParser = Parsec String () Expr
 
@@ -36,16 +36,16 @@ expression :: ExprParser
 expression = addition
 
 addition :: ExprParser
-addition = OperPlus <$> primary <* symbol style "+" <*> primary
+addition = try (Plus <$> primary <* symbol style "+" <*> primary) <|> primary
 
 primary :: ExprParser
 primary = refRel <|> refAbs <|> constI
 
 refAbs :: ExprParser
-refAbs = RefAbs <$> between (symbol style "[") (symbol style "]") intTuple
+refAbs = RefAbs <$> between (symbol style "(") (symbol style ")") intTuple
 
 constI :: ExprParser
 constI = ConstInt . fromInteger <$> integer style
 
 refRel :: ExprParser
-refRel = RefRel <$> between (symbol style "$[") (symbol style "]") intTuple
+refRel = RefRel <$> between (symbol style "$(") (symbol style ")") intTuple

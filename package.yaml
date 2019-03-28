@@ -29,12 +29,13 @@ library:
   - recursion-schemes
   - boxes
   - algebraic-graphs
+  - NumInstances
   - parsec
   - brick
   - array
   - text-zipper
   - vty
-
+  - lens
 executables:
   excelent-exe:
     main:                Main.hs
@@ -44,18 +45,20 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - excelent
-    - containers
-    - recursion-schemes
-    - mtl
-    - transformers
-    - data-default
-    - brick
     - array
-    - text-zipper
-    - vty
+    - brick
+    - containers
+    - data-default
+    - excelent
+    - lens
+    - mtl
     - NumInstances
-    
+    - parsec
+    - recursion-schemes
+    - text-zipper
+    - transformers
+    - vty
+
 tests:
   excelent-test:
     main:                Spec.hs
@@ -66,3 +69,8 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - excelent
+    - tasty
+    - tasty-quickcheck
+    - QuickCheck
+    - containers
+    - algebraic-graphs

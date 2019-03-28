@@ -3,41 +3,52 @@ module Excelent.Eval.Graph where
 import Algebra.Graph
 import Algebra.Graph.AdjacencyMap as GA
 import Algebra.Graph.AdjacencyMap.Algorithm as GAA
+import Algebra.Graph.NonEmpty.AdjacencyMap as GNA
 import Data.Functor.Foldable
 import Excelent.Eval.Eval
-import Definition
+import Excelent.Definition
 import qualified Data.Map as M
 import qualified Data.Set as S
+import Data.NumInstances.Tuple
+import Data.List.NonEmpty hiding (length)
+import Control.Lens hiding (view)
+import Control.Lens.Combinators hiding (view)
 
-type NodeGraph = GA.AdjacencyMap Position
+graphAlg :: Algebra ExprF (Position -> NodeGraph)
+graphAlg (ConstIntF i)     pos = GA.vertex pos
+graphAlg (PlusF exp1 exp2) pos = GA.overlay (exp1 pos) (exp2 pos)
+graphAlg (RefRelF p)       pos = GA.edge pos (p + pos)
+graphAlg (RefAbsF p)       pos = GA.edge pos p
 
-graphAlg :: Expr' (Position -> NodeGraph) -> (Position -> NodeGraph)
-graphAlg (ConstInt' i)         pos = GA.vertex pos
-graphAlg (OperPlus' exp1 exp2) pos = GA.overlay (exp1 pos) (exp2 pos)
-graphAlg (RefRel' p)           pos = GA.edge (sumTuple p pos) pos
-graphAlg (RefAbs' p)           pos = GA.edge p pos
+node :: Expr -> Position -> NodeGraph
+node = cata graphAlg
 
-sumTuple :: Num a => (a, a) -> (a, a) -> (a, a)
-sumTuple (a1, a2) (b1, b2) = (a1 + b1, a2 + b2)
-
-graph :: Expr -> Position -> NodeGraph
-graph = cata graphAlg
-
-initializeGraph :: Env -> NodeGraph
-initializeGraph Env {formulas = f}
-    = foldr (\(pos, exp) g -> GA.overlay (graph exp pos) g) GA.empty (M.toList f)
-
-changeCell :: NodeGraph -> Position -> Expr -> (NodeGraph, [Position])
-changeCell g p exp = (newGraph, p : toRecalculate)
+initializeGraph :: Env -> Env
+initializeGraph env
+    = env & graph .~
+        foldr (\(pos, exp) g -> GA.overlay (node exp pos) g)
+            GA.empty (M.toList f)
     where
-        new = graph exp p
-        removed = GA.removeVertex p g
+        f = env ^. formulas
+
+changeCell :: Position -> Expr -> Env -> (Env, [Position])
+changeCell p exp env = (env & graph .~ newGraph,  p : toRecalculate)
+    where
+        new = node exp p
+        edgeTargetsToRemove = GA.postSet p (env ^. graph)
+        removed = S.foldr (GA.removeEdge p) (env ^. graph) edgeTargetsToRemove
         newGraph = GA.overlay removed new
-        inputs = S.toList $ GA.preSet p g
-        toRecalculate = dfs inputs removed
+        toRecalculate = dfs [p] (GA.transpose $ env ^. graph)
 
-cycles :: NodeGraph -> [Position]
-cycles g = GA.vertexList treeCycles
+insertAndEvalGraph :: Position -> Expr -> Env -> Env
+insertAndEvalGraph pos expr env
+    = foldr evalCell cycles toRecalculate
     where
-        trees = map GA.tree (GAA.dfsForest g)
-        treeCycles = GA.overlays $ filter (not . GAA.isAcyclic) trees
+        inserted = env & formulas %~ M.insert pos expr
+        (envWithGraph, toRecalculate) = changeCell pos expr inserted
+        invalidated = invalidateView toRecalculate envWithGraph
+        cyclicGraphs = GA.vertexList (GAA.scc $ envWithGraph^.graph)
+        cycles = foldr insertError invalidated (concatMap filterCycle cyclicGraphs)
+        insertError v env = env& view %~ M.insert v (Left "cycle detected")
+        filterCycle = (\l -> if length l > 1 then l else []) . toList . GNA.vertexList1
+        
