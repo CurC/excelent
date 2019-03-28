@@ -1,65 +1,18 @@
 module Excelent.Print where
 
 import Excelent.Definition
-import Excelent.Eval.Eval
-import Data.Maybe
-import Data.List
-import qualified Text.PrettyPrint.Boxes as T
 import qualified Data.Map as M
-import Control.Lens hiding (view)
-import Control.Lens.Combinators hiding (view)
 
-
-renderView :: Env -> [[String]]
-renderView env = viewData
-    where
-        viewData = map (map (\p -> case p `M.lookup` (env ^. view) of
-            Nothing -> emptyCellPlaceholder
-            Just v -> case v of
-                Left s -> if s == "" then emptyCellPlaceholder else s
-                Right val -> show val)) positions
-        positions = inView (env ^. port)
-
-renderFormulas :: Env -> [[String]]
-renderFormulas env = fData
-    where
-        fData = map (map (\p -> case p `M.lookup` (env ^. formulas) of
-            Nothing -> emptyCellPlaceholder
-            Just x -> show x)) positions
-        positions = inView (env ^. port)
-
-
+-- | Prints the expression in the given position using its show instance
 printF :: Position -> FormulaData -> String
 printF p f = case M.lookup p f of
     Just x -> show x
     Nothing -> ""
 
+-- | Prints the calculated value in the given position, otherwise nothing
 printV :: Position -> ViewData -> String
 printV p v = case M.lookup p v of
     Just x -> case x of
         Left s -> ""
         Right i -> show i
     Nothing -> ""
-
-emptyCellPlaceholder :: String
-emptyCellPlaceholder = "_____"
-
-format :: [[String]] -> T.Box
-format = formatTable (repeat T.right) 2
-
-printView :: Env -> IO ()
-printView env = T.printBox . format . renderView $ eval env
-
-printForms :: Env -> IO ()
-printForms env = T.printBox . format . renderFormulas $ eval env
-
--- https://github.com/treeowl/boxes/pull/5/files
-formatTable :: [T.Alignment] -> Int -> [[String]] -> T.Box
-formatTable als sep cols = T.punctuateH T.top sep' $ map (uncurry singleCol) colal
-  where als' = cycle als
-        cols' = transpose cols
-        colal = zip als' cols'
-        sep' = T.emptyBox 0 sep
-
-singleCol :: T.Alignment -> [String] -> T.Box
-singleCol al = T.vcat al . map T.text

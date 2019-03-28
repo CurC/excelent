@@ -12,11 +12,11 @@ import Data.NumInstances.Tuple
 import Control.Lens hiding (view)
 import Control.Lens.Combinators hiding (view)
 
-graphAlg :: Algebra Expr' (Position -> NodeGraph)
-graphAlg (ConstInt' i)     pos = GA.vertex pos
-graphAlg (Plus' exp1 exp2) pos = GA.overlay (exp1 pos) (exp2 pos)
-graphAlg (RefRel' p)       pos = GA.edge pos (p + pos)
-graphAlg (RefAbs' p)       pos = GA.edge pos p
+graphAlg :: Algebra ExprF (Position -> NodeGraph)
+graphAlg (ConstIntF i)     pos = GA.vertex pos
+graphAlg (PlusF exp1 exp2) pos = GA.overlay (exp1 pos) (exp2 pos)
+graphAlg (RefRelF p)       pos = GA.edge pos (p + pos)
+graphAlg (RefAbsF p)       pos = GA.edge pos p
 
 node :: Expr -> Position -> NodeGraph
 node = cata graphAlg

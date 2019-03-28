@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 7fb8fd80db04c17275909564192314018c00e12145793ef42cf0ed87715611da
+-- hash: 94fff64fc71e8bb5bc461cb98e70e0ad1bbb5cc0e61134fe3b495b70b6799358
 
 name:           excelent
 version:        0.1.0.0
@@ -32,7 +32,6 @@ library
       Excelent.Eval.Graph
       Excelent.Parser
       Excelent.Print
-      Excelent.Util.Common
   other-modules:
       Paths_excelent
   hs-source-dirs:
@@ -80,7 +79,9 @@ test-suite excelent-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Specs.Arbitrary
       Specs.Eval
+      Specs.Graph
       Paths_excelent
   hs-source-dirs:
       test

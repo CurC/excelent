@@ -6,16 +6,22 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE DeriveFoldable #-}
 
 module Excelent.Definition where
 
-import Data.Functor.Foldable
-import GHC.Generics (Generic)
-import qualified Data.Map as M
 import Algebra.Graph.AdjacencyMap as GA
+import Control.Lens
 import Control.Lens.Combinators hiding (view)
 import Control.Lens.Getter
-import Control.Lens
+import Data.Functor.Foldable
+import Data.Functor.Foldable.TH
+import GHC.Generics (Generic)
+import qualified Data.Map as M
+
+type Position = (Int, Int)
+type Size = (Int, Int)
 
 data Expr = ConstInt Int
     | Plus Expr Expr
@@ -23,26 +29,15 @@ data Expr = ConstInt Int
     | RefAbs Position
     deriving (Generic, Read)
 
-data Expr' a = ConstInt' Int
-    | Plus' a a
-    | RefRel' Position
-    | RefAbs' Position
-    deriving (Functor, Generic)
+makeBaseFunctor ''Expr
 
 type Algebra f a = f a -> a
-
-type instance Base Expr = Expr'
-instance Recursive Expr
-instance Corecursive Expr
 
 instance Show Expr where
     show (ConstInt i) = show i
     show (Plus i1 i2) = show i1 ++ " + " ++ show i2
     show (RefRel p) = "$" ++ show p
     show (RefAbs p) = show p
-
-type Position = (Int, Int)
-type Size = (Int, Int)
 
 type FormulaData = M.Map Position Expr
 type ViewData = M.Map Position ViewValue
