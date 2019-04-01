@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 94fff64fc71e8bb5bc461cb98e70e0ad1bbb5cc0e61134fe3b495b70b6799358
+-- hash: 4409d14cd13ae080c95fa9c9cd96459a1b611de468fe902088ae1cb7b42a75ea
 
 name:           excelent
 version:        0.1.0.0
@@ -92,6 +92,7 @@ test-suite excelent-test
     , base >=4.7 && <5
     , containers
     , excelent
+    , lens
     , tasty
     , tasty-quickcheck
   default-language: Haskell2010

@@ -4,8 +4,11 @@ import Test.Tasty
 import Test.Tasty.QuickCheck
 import Test.QuickCheck
 
-import qualified Data.Map as M
+import Control.Lens
+import Control.Lens.Combinators hiding (view)
+import Control.Lens.Getter
 import qualified Algebra.Graph.AdjacencyMap as GA
+import qualified Data.Map as M
 
 import Excelent.Definition
 import Excelent.Eval.Eval
@@ -14,37 +17,35 @@ evalProps :: TestTree
 evalProps = testGroup "Evaluations" [constProps, refProps, addProps]
 
 constProps :: TestTree
-constProps = testGroup "Constants"
-  [
-      testProperty "Integer" intConstValid
-  ]
+constProps = testGroup "Constants" [
+        testProperty "Integer" intConstValid
+    ]
 
 addProps :: TestTree
-addProps = testGroup "Addition"
-  [
-      testProperty "Integer" additionValid
-  ]
+addProps = testGroup "Addition" [
+        testProperty "Integer" additionValid
+    ]
 
 refProps :: TestTree
-refProps = testGroup "Reference"
-  [
-      testProperty "Absolute Valid" absRefValid,
-      testProperty "Absolute Random" absRefRandom
+refProps = testGroup "Reference" [
+        testProperty "Absolute Valid" absRefValid,
+        testProperty "Absolute Random" absRefRandom
   ]
 
 absRefValid :: (Int, Int) -> Int -> Bool
-absRefValid pos i = i == expectInt (snd (evalExpr (RefRel pos) pos env))
+absRefValid pos i = i == expectInt (snd (evalExpr (RefRel pos) (0, 0) env))
     where
-        env = M.insert pos (ConstInt i) M.empty
+        env = emptyEnv & formulas %~ M.insert pos (ConstInt i)
 
-absRefRandom :: [(Int, Int)] -> Int -> Bool
+absRefRandom :: [(Int, Int)] -> (Int, Int) -> Int -> Bool
 absRefRandom insPs refP i = if refP `elem` insPs
-        then i == expectInt (snd (evalExpr (RefRel refP) refP env))
-        else case evalExpr (RefRel refP) refP env of
+        then i == expectInt (evaluated)
+        else case evaluated of
             Left _ -> True
             Right _ -> False
     where
-        env = foldr (`M.insert` ConstInt i) M.empty insPs
+        evaluated = snd (evalExpr (RefRel refP) (0, 0) env)
+        env = foldr (\ins env -> env & formulas %~ M.insert ins (ConstInt i)) emptyEnv insPs
 
 additionValid :: Int -> Int -> Bool
 additionValid i1 i2 = i1 + i2 ==
@@ -56,12 +57,12 @@ intConstValid i1 = i1 ==
 
 emptyEnv :: Env
 emptyEnv = Env {
-        formulas = M.empty,
-        view = M.empty,
-        graph = GA.empty,
-        port = ViewPort {
-            position = (0, 0),
-            size = (0, 0)
+        _formulas = M.empty,
+        _view = M.empty,
+        _graph = GA.empty,
+        _port = ViewPort {
+            _position = (0, 0),
+            _size = (0, 0)
         }
     }
 

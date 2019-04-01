@@ -1,4 +1,4 @@
-module Spec.Arbitrary where
+module Specs.Arbitrary where
 
 import Test.Tasty
 import Test.Tasty.QuickCheck
@@ -24,4 +24,11 @@ genRef = do
 genOp :: Gen Expr
 genOp = do
     (e1, e2) <- arbitrary
+    return $ Plus e1 e2
+
+genOpNode :: Gen Expr
+genOpNode = do
+    let n = oneof [genInt, genRef]
+    e1 <- n
+    e2 <- n
     return $ Plus e1 e2
