@@ -25,7 +25,7 @@ typeAlg (PlusF exp1 exp2) pos env =
     let (env', t1) = exp1 pos env
         (env'', t2) = exp2 pos env'
         typeError = typeErrorString (show t1 ++ " + " ++ show t2)
-    in if not (t1 == t2) || t1 == TInvalid || t2 == TInvalid
+    in if (t1 /= t2) || t1 == TInvalid || t2 == TInvalid
             then insertType pos TInvalid (env & view %~ M.insert pos typeError)
             else insertType pos t1 env''
 typeAlg (RefRelF p)       pos env =

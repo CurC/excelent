@@ -35,7 +35,7 @@ expression :: ExprParser
 expression = addition
 
 addition :: ExprParser
-addition = try (Plus <$> primary <* symbol style "+" <*> primary) <|> primary
+addition = try (Plus <$> primary <* symbol style "+" <*> addition) <|> primary
 
 primary :: ExprParser
 primary = try refRel <|>

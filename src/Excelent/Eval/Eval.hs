@@ -10,9 +10,9 @@ import Control.Lens hiding (view)
 import Control.Lens.Combinators hiding (view)
 
 -- | The algebra expressing the evaluation of Expr structures into its results.
---   Expressions are dependent on the environment supplied and can on its own
---   also change the current environment in the form of 'caching' the
---   results of any cells calculated in the mean time.
+-- Expressions are dependent on the environment supplied and can on its own
+-- also change the current environment in the form of 'caching' the
+-- results of any cells calculated in the mean time.
 evalAlg :: Algebra ExprF (Position -> Env -> (Env, ViewValue))
 evalAlg EmptyF            _   env = (env, Left "")
 evalAlg (ConstIntF i)     _   env = (env, Right (I i))
@@ -31,8 +31,8 @@ evalAlg (RefRelF p) pos env = doLookup (pos + p) env
 evalAlg (RefAbsF p) pos env = doLookup p env
 
 -- | Try and either lookup the value of the given position if it was ever
---   calculated, or calculate it and save any cells calculated along the way in
---   the environment
+-- calculated, or calculate it and save any cells calculated along the way in
+-- the environment
 doLookup :: Position -> Env -> (Env, ViewValue)
 doLookup pos env = case M.lookup pos (env^.formulas) of
     Nothing -> (env, Left "Error: Empty cell referenced")
@@ -43,14 +43,14 @@ doLookup pos env = case M.lookup pos (env^.formulas) of
 
 
 -- | Evaluate the given expression using the current position and its environment.
---   This is done using a catamorphism, which is automatically derived using the
---   recursion-schemes library
+-- This is done using a catamorphism, which is automatically derived using the
+-- recursion-schemes library
 evalExpr :: Expr -> Position -> Env -> (Env, ViewValue)
 evalExpr = cata evalAlg
 
 -- | Ensures that the cell at the given position is evaluated, or in other words,
---   that the view record in the environment contains a value for the cell at
---   the position
+-- that the view record in the environment contains a value for the cell at
+-- the position
 evalCell :: Position -> Env -> Env
 evalCell pos env = case M.lookup pos (env ^. view) of
     Just v -> env
@@ -73,8 +73,12 @@ inView vp =
         j <- [0..vp ^. size . _2]]
 
 -- | Removes the values in the ViewData in the environment at the given positions,
---   so that they can be recalculated.
+-- so that they can be recalculated. The types of the cells also need to be
+-- recalculated
 invalidateView :: [Position] -> Env -> Env
-invalidateView ps env = env & view %~ (`M.withoutKeys` set)
+invalidateView ps env
+    = env
+        & view %~ (`M.withoutKeys` set)
+        & types %~ (`M.withoutKeys` set)
     where
         set = S.fromList ps
