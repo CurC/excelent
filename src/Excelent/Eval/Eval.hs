@@ -14,6 +14,7 @@ import Control.Lens.Combinators hiding (view)
 --   also change the current environment in the form of 'caching' the
 --   results of any cells calculated in the mean time.
 evalAlg :: Algebra ExprF (Position -> Env -> (Env, ViewValue))
+evalAlg EmptyF            _   env = (env, Left "")
 evalAlg (ConstIntF i)     _   env = (env, Right (I i))
 evalAlg (ConstDoubleF d)  _   env = (env, Right (D d))
 evalAlg (PlusF exp1 exp2) pos env = (env2, do

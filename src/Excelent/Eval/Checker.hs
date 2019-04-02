@@ -12,6 +12,9 @@ import Control.Lens.Combinators hiding (view)
 -- | Type checking algebra which calculates the type of the given expression
 -- and also insert the error into the view if an error occured
 typeAlg :: Algebra ExprF (Position -> Env -> (Env, Type))
+typeAlg EmptyF            pos env =
+    let t = TEmpty
+    in insertType pos t env
 typeAlg (ConstIntF _)     pos env =
     let t = TInt
     in insertType pos t env
@@ -19,18 +22,18 @@ typeAlg (ConstDoubleF _)  pos env =
     let t = TDouble
     in insertType pos t env
 typeAlg (PlusF exp1 exp2) pos env =
-    let (env1, t1) = exp1 pos env
-        (env2, t2) = exp2 pos env1
+    let (env', t1) = exp1 pos env
+        (env'', t2) = exp2 pos env'
         typeError = typeErrorString (show t1 ++ " + " ++ show t2)
     in if not (t1 == t2) || t1 == TInvalid || t2 == TInvalid
             then insertType pos TInvalid (env & view %~ M.insert pos typeError)
-            else insertType pos t1 env
+            else insertType pos t1 env''
 typeAlg (RefRelF p)       pos env =
-    let t = fetchType (p + pos) env
-    in insertType pos t env
+    let (env', t) = fetchType (p + pos) env
+    in insertType pos t env'
 typeAlg (RefAbsF p)       pos env =
-    let t = fetchType p env
-    in insertType pos t env
+    let (env', t) = fetchType p env
+    in insertType pos t env'
 
 checkType :: Expr -> Position -> Env -> (Env, Type)
 checkType = cata typeAlg
@@ -38,10 +41,12 @@ checkType = cata typeAlg
 insertType :: Position -> Type -> Env -> (Env, Type)
 insertType pos t env = (env & types %~ M.insert pos t, t)
 
-fetchType :: Position -> Env -> Type
+fetchType :: Position -> Env -> (Env, Type)
 fetchType pos env = case M.lookup pos (env ^. types) of
-    Just t -> t
-    Nothing -> TEmpty
+    Just t -> (env, t)
+    Nothing -> case M.lookup pos (env ^. formulas) of
+        Just expr -> checkType expr pos env
+        Nothing -> (env, TEmpty)
 
 typeErrorString :: String -> Either String Value
 typeErrorString s = Left ("Type error: " ++ s)

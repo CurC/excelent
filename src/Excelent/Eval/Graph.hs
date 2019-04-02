@@ -3,17 +3,17 @@ module Excelent.Eval.Graph where
 import Prelude
 import qualified Data.Map as M
 import qualified Data.Set as S
+import Data.Maybe
 import Data.List.NonEmpty hiding (length, head)
 
-import Algebra.Graph
-import Algebra.Graph.AdjacencyMap as GA
+import Algebra.Graph hiding (Empty)
+import Algebra.Graph.AdjacencyMap as GA hiding (Empty)
 import Algebra.Graph.AdjacencyMap.Algorithm as GAA
 import Algebra.Graph.NonEmpty.AdjacencyMap as GNA
-import Control.Lens hiding (view)
-import Control.Lens.Combinators hiding (view)
+import Control.Lens hiding (view, Empty)
+import Control.Lens.Combinators hiding (view, Empty)
 import Data.Functor.Foldable
 import Data.NumInstances.Tuple
-import Debug.Trace
 
 import Excelent.Eval.Eval
 import Excelent.Eval.Checker
@@ -25,6 +25,7 @@ import Excelent.Definition
 -- These multitude of small subgraph (one for each cell) are then overlayed to
 -- create the final dependency graph
 graphAlg :: Algebra ExprF (Position -> NodeGraph)
+graphAlg EmptyF            pos = GA.vertex pos
 graphAlg (ConstIntF _)     pos = GA.vertex pos
 graphAlg (ConstDoubleF _)  pos = GA.vertex pos
 graphAlg (PlusF exp1 exp2) pos = GA.overlay (exp1 pos) (exp2 pos)
@@ -62,7 +63,9 @@ insertAndEvalGraph pos expr env
         (envWithGraph, toRecalculate) = changeCell pos expr inserted
         invalidated = invalidateView toRecalculate envWithGraph
         cycles = checkCycles invalidated
-        typeChecked = fst (checkType expr pos cycles)
+        typeChecked = fst (foldr (\pos (m, _) ->
+            checkType (fromJust (M.lookup pos (m ^. formulas))) pos m)
+                (cycles, TEmpty) (Prelude.reverse toRecalculate))
 
 checkCycles :: Env -> Env
 checkCycles env = foldr insertError env (concatMap onlyCycles cyclicGraphs)

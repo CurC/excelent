@@ -83,7 +83,7 @@ initialState = State
     { _focusRing' = focusRing $ Data.Array.indices editors'
     , _widgets = editors'
     , _isEditing = False
-    , _env = initializeGraph $ eval $ initial viewport
+    , _env = eval $ initializeGraph $ initial viewport
     }
   where
     editors' = editors viewport

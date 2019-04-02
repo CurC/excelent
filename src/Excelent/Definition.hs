@@ -12,8 +12,8 @@
 module Excelent.Definition where
 
 import Algebra.Graph.AdjacencyMap as GA
-import Control.Lens
-import Control.Lens.Combinators hiding (view)
+import Control.Lens hiding (Empty)
+import Control.Lens.Combinators hiding (view, Empty)
 import Control.Lens.Getter
 import Data.Functor.Foldable
 import Data.Functor.Foldable.TH
@@ -23,7 +23,8 @@ import qualified Data.Map as M
 type Position = (Int, Int)
 type Size = (Int, Int)
 
-data Expr = ConstInt Int
+data Expr = Empty
+    | ConstInt Int
     | ConstDouble Double
     | Plus Expr Expr
     | RefRel Position
@@ -45,6 +46,7 @@ type TypeEnvironment = M.Map Position Type
 type NodeGraph       = GA.AdjacencyMap Position
 
 instance Show Expr where
+    show Empty = ""
     show (ConstInt i) = show i
     show (ConstDouble d) = show d
     show (Plus i1 i2) = show i1 ++ " + " ++ show i2
@@ -78,7 +80,7 @@ makeLenses ''Env
 makeLenses ''ViewPort
 
 initial :: ViewPort -> Env
-initial nPort = env3 & port .~ nPort
+initial nPort = demo & port .~ nPort
     --     Env {
     --     _formulas = M.empty,
     --     _view = M.empty,
@@ -89,51 +91,28 @@ initial nPort = env3 & port .~ nPort
     --     port = port
     -- }
 
-e1 :: Expr
-e1 = ConstInt 1
-
-e2 :: Expr
-e2 = RefAbs (0, 0)
-
-env1 :: Env
-env1 = Env {
-        _formulas = M.insert (0, 0) (Plus (RefAbs (1, 0)) (RefAbs (2, 0))) (M.insert (1, 0) (ConstInt 2) (M.insert (2, 0) (ConstInt 7) M.empty)),
+initialEnv :: Env
+initialEnv = Env {
+        _formulas = M.empty,
         _view = M.empty,
         _graph = GA.empty,
+        _types = M.empty,
         _port = ViewPort {
                 _position = (0, 0),
                 _size = (10, 10)
             }
     }
 
-env2 :: Env
-env2 = Env {
-        _formulas = M.insert (0, 0) (RefAbs (1, 0)) (M.insert (1, 0) (RefAbs (0, 0)) M.empty),
-        _view = M.empty,
-        _graph = GA.empty,
-        _port = ViewPort {
-                _position = (0, 0),
-                _size = (10, 10)
-            }
-    }
-
-relref :: Position -> Expr
-relref = RefRel
-
-plus :: Expr -> Expr -> Expr
-plus = Plus
-
-i :: Int -> Expr
-i = ConstInt
-
-env3 :: Env
-env3 = Env {
+demo :: Env
+demo = Env {
         _formulas =
-            M.insert (0, 1) (plus (relref (0, 1)) (i 1))
-                (M.insert (0, 2) (plus (relref (0, 1)) (i 1))
-                    (M.insert (0, 3) (plus (relref (0, 1)) (i 1))
-                        (M.insert (0, 4) (plus (relref (0, 1)) (i 1))
-                            (M.insert (0, 5) (i 1) M.empty)))),
+            M.insert (1, 2) (Plus (RefRel (0, -1)) (ConstInt 1))
+                (M.insert (1, 1) (Plus (RefRel (0, -1)) (ConstInt 1))
+                    (M.insert (0, 4) (Plus (RefRel (0, -1)) (ConstInt 1))
+                        (M.insert (0, 3) (Plus (RefRel (0, -1)) (ConstInt 1))
+                            (M.insert (0, 2) (Plus (RefRel (0, -1)) (ConstInt 1))
+                                (M.insert (0, 1) (Plus (RefRel (0, -1)) (ConstInt 1))
+                                    (M.insert (0, 0) (ConstInt 1) M.empty)))))),
         _view = M.empty,
         _graph = GA.empty,
         _types = M.empty,
