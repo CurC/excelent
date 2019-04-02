@@ -4,7 +4,7 @@ import Prelude
 import qualified Data.Map as M
 import qualified Data.Set as S
 import Data.Maybe
-import Data.List.NonEmpty hiding (length, head)
+import Data.List.NonEmpty hiding (length, head, filter)
 
 import Algebra.Graph hiding (Empty)
 import Algebra.Graph.AdjacencyMap as GA hiding (Empty)
@@ -14,6 +14,7 @@ import Control.Lens hiding (view, Empty)
 import Control.Lens.Combinators hiding (view, Empty)
 import Data.Functor.Foldable
 import Data.NumInstances.Tuple
+import Debug.Trace
 
 import Excelent.Eval.Eval
 import Excelent.Eval.Checker
@@ -62,18 +63,27 @@ insertAndEvalGraph pos expr env
         inserted = env & formulas %~ M.insert pos expr
         (envWithGraph, toRecalculate) = changeCell pos expr inserted
         invalidated = invalidateView toRecalculate envWithGraph
-        cycles = checkCycles invalidated
-        typeChecked = fst (foldr (\pos (m, _) ->
-            checkType (fromJust (M.lookup pos (m ^. formulas))) pos m)
-                (cycles, TEmpty) toRecalculate)
+        (cycleEnv, cycles) = checkCycles invalidated
+        nonCycles = filter (\p -> not $ S.member p cycles) toRecalculate
+        typeChecked =
+            if length nonCycles == length toRecalculate
+            then fst (foldr (\pos (m, _) ->
+                checkType (fromMaybe Empty (M.lookup pos (m ^. formulas))) pos m)
+                    (cycleEnv, TEmpty)
+                        (filter (\p -> not $ S.member p cycles) toRecalculate))
+            else foldr
+                (\p env -> env
+                    & view %~ M.insert p (Left $ Error "Cycle referenced"))
+                        cycleEnv nonCycles
 
-checkCycles :: Env -> Env
-checkCycles env = foldr insertError env (concatMap onlyCycles cyclicGraphs)
+checkCycles :: Env -> (Env, S.Set Position)
+checkCycles env = (foldr insertError env poss, S.fromList poss)
     where
+        poss = concatMap onlyCycles cyclicGraphs
         cyclicGraphs = GA.vertexList (GAA.scc $ env ^. graph)
         insertError v env =
-            env & view %~ M.insert v (Left "Error: Cycle detected")
+            env & view %~ M.insert v (Left $ Error "Cycle detected")
         onlyCycles = (\l ->
-            if length l <= 1 && GA.hasEdge (head l) (head l) (env ^. graph)
+            if length l > 1 || GA.hasEdge (head l) (head l) (env ^. graph)
                 then l
                 else []) . toList . GNA.vertexList1

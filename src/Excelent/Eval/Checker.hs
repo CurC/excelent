@@ -48,5 +48,5 @@ fetchType pos env = case M.lookup pos (env ^. types) of
         Just expr -> checkType expr pos env
         Nothing -> (env, TEmpty)
 
-typeErrorString :: String -> Either String Value
-typeErrorString s = Left ("Type error: " ++ s)
+typeErrorString :: String -> Either Error Value
+typeErrorString s = Left (TypeError s)

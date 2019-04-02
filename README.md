@@ -21,6 +21,10 @@ The environment the program start with contains both a chain of integer referenc
 - Graph evaluation
   - Only update the necessary cells when inserting
   - Cycle detection
+- Type errors, errors and warnings.
+  - We differentiate between a cycle itself, and referencing cycles. Both are treated as errors.
+  - Referencing an empty cell is treated as a warning due to an empty cell maybe being useful in some way.
+  - However, using that empty reference in an operation results in a type error. Same with using a reference to a cell containing an error.
 - Multiple types
   -  Type checker implemented which inserts type errors where relevant into the view
   -  Unable to do operations on expressions of different types

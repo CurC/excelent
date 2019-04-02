@@ -37,7 +37,12 @@ type Algebra f a = f a -> a
 
 type FormulaData = M.Map Position Expr
 type ViewData    = M.Map Position ViewValue
-type ViewValue   = (Either String Value)
+type ViewValue   = (Either Error Value)
+data Error       = TypeError String
+                 | Error String
+                 | InternalError String
+                 | Warning String
+                 | NoError String
 data Value       = I Int
                  | D Double
 
@@ -56,6 +61,13 @@ instance Show Expr where
 instance Show Value where
     show (I i) = show i
     show (D d) = show d
+
+instance Show Error where
+    show (TypeError s)     = "Type Error: " ++ s
+    show (Error s)         = "Error: " ++ s
+    show (InternalError s) = "Internal Error: " ++ s
+    show (Warning s)       = "Warning: " ++ s
+    show (NoError s)       = s
 
 instance Show Type where
     show TInt     = "Int"
@@ -105,14 +117,15 @@ initialEnv = Env {
 
 demo :: Env
 demo = Env {
-        _formulas =
-            M.insert (1, 2) (Plus (RefRel (0, -1)) (ConstInt 1))
-                (M.insert (1, 1) (Plus (RefRel (0, -1)) (ConstInt 1))
-                    (M.insert (0, 4) (Plus (RefRel (0, -1)) (ConstInt 1))
-                        (M.insert (0, 3) (Plus (RefRel (0, -1)) (ConstInt 1))
-                            (M.insert (0, 2) (Plus (RefRel (0, -1)) (ConstInt 1))
-                                (M.insert (0, 1) (Plus (RefRel (0, -1)) (ConstInt 1))
-                                    (M.insert (0, 0) (ConstInt 1) M.empty)))))),
+        _formulas = M.fromList [
+                ((1, 2), Plus (RefRel (0, -1)) (ConstInt 1)),
+                ((1, 1), Plus (RefRel (0, -1)) (ConstInt 1)),
+                ((0, 4), Plus (RefRel (0, -1)) (ConstInt 1)),
+                ((0, 3), Plus (RefRel (0, -1)) (ConstInt 1)),
+                ((0, 2), Plus (RefRel (0, -1)) (ConstInt 1)),
+                ((0, 1), Plus (RefRel (0, -1)) (ConstInt 1)),
+                ((0, 0), ConstInt 1)
+            ],
         _view = M.empty,
         _graph = GA.empty,
         _types = M.empty,
