@@ -39,13 +39,16 @@ addition :: ExprParser
 addition = try (Plus <$> primary <* symbol style "+" <*> primary) <|> primary
 
 primary :: ExprParser
-primary = refRel <|> refAbs <|> constI
+primary = refRel <|> refAbs <|> try constF <|> constI
 
 refAbs :: ExprParser
 refAbs = RefAbs <$> between (symbol style "(") (symbol style ")") intTuple
 
 constI :: ExprParser
 constI = ConstInt . fromInteger <$> integer style
+
+constF :: ExprParser
+constF = ConstDouble <$> float style
 
 refRel :: ExprParser
 refRel = RefRel <$> between (symbol style "$(") (symbol style ")") intTuple

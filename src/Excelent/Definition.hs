@@ -24,6 +24,7 @@ type Position = (Int, Int)
 type Size = (Int, Int)
 
 data Expr = ConstInt Int
+    | ConstDouble Double
     | Plus Expr Expr
     | RefRel Position
     | RefAbs Position
@@ -33,21 +34,38 @@ makeBaseFunctor ''Expr
 
 type Algebra f a = f a -> a
 
+type FormulaData = M.Map Position Expr
+type ViewData    = M.Map Position ViewValue
+type ViewValue   = (Either String Value)
+data Value       = I Int
+                 | D Double
+
+data Type            = TInt | TDouble | TEmpty | TInvalid deriving (Eq)
+type TypeEnvironment = M.Map Position Type
+type NodeGraph       = GA.AdjacencyMap Position
+
 instance Show Expr where
     show (ConstInt i) = show i
+    show (ConstDouble d) = show d
     show (Plus i1 i2) = show i1 ++ " + " ++ show i2
     show (RefRel p) = "$" ++ show p
     show (RefAbs p) = show p
 
-type FormulaData = M.Map Position Expr
-type ViewData = M.Map Position ViewValue
-type ViewValue = (Either String Int)
-type NodeGraph = GA.AdjacencyMap Position
+instance Show Value where
+    show (I i) = show i
+    show (D d) = show d
+
+instance Show Type where
+    show TInt     = "Int"
+    show TDouble  = "Double"
+    show TEmpty   = "Empty"
+    show TInvalid = "Error"
 
 data Env = Env {
         _formulas :: FormulaData,
         _view :: ViewData,
         _port :: ViewPort,
+        _types :: TypeEnvironment,
         _graph :: NodeGraph
     } deriving (Show)
 
@@ -62,9 +80,12 @@ makeLenses ''ViewPort
 initial :: ViewPort -> Env
 initial nPort = env3 & port .~ nPort
     --     Env {
-    --     formulas = M.empty,
-    --     view = M.empty,
-    --     graph = GA.empty,
+    --     _formulas = M.empty,
+    --     _view = M.empty,
+    --     _graph = = NodeGraph {
+    --         _deps = GA.empty
+    --         _types = M.empty
+    --     },
     --     port = port
     -- }
 
@@ -115,6 +136,7 @@ env3 = Env {
                             (M.insert (0, 5) (i 1) M.empty)))),
         _view = M.empty,
         _graph = GA.empty,
+        _types = M.empty,
         _port = ViewPort {
                 _position = (0, 0),
                 _size = (10, 10)

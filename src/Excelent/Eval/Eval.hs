@@ -14,12 +14,16 @@ import Control.Lens.Combinators hiding (view)
 --   also change the current environment in the form of 'caching' the
 --   results of any cells calculated in the mean time.
 evalAlg :: Algebra ExprF (Position -> Env -> (Env, ViewValue))
-evalAlg (ConstIntF i)     _   env = (env, Right i)
+evalAlg (ConstIntF i)     _   env = (env, Right (I i))
+evalAlg (ConstDoubleF d)  _   env = (env, Right (D d))
 evalAlg (PlusF exp1 exp2) pos env = (env2, do
         i <- vval1
         j <- vval2
-        return $ i + j)
+        sumVals i j)
     where
+        sumVals (I i1) (I i2) = Right (I (i1 + i2))
+        sumVals (D d1) (D d2) = Right (D (d1 + d2))
+        sumVals _ _ = Left "Internal error: Typechecker type error"
         (env1, vval1) = exp1 pos env
         (env2, vval2) = exp2 pos env1
 evalAlg (RefRelF p) pos env = doLookup (pos + p) env
@@ -29,13 +33,13 @@ evalAlg (RefAbsF p) pos env = doLookup p env
 --   calculated, or calculate it and save any cells calculated along the way in
 --   the environment
 doLookup :: Position -> Env -> (Env, ViewValue)
-doLookup pos env = case M.lookup pos (env^.formulas) of 
-    Nothing -> (env, Left "err: Empty")
+doLookup pos env = case M.lookup pos (env^.formulas) of
+    Nothing -> (env, Left "Error: Empty cell referenced")
     Just e -> case M.lookup pos (env^.view) of
         Nothing -> let (newEnv, val) = cata evalAlg e pos env in
             (newEnv & view %~ M.insert pos val, val)
         Just e' -> (env, e')
-        
+
 
 -- | Evaluate the given expression using the current position and its environment.
 --   This is done using a catamorphism, which is automatically derived using the

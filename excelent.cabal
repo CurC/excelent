@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 4409d14cd13ae080c95fa9c9cd96459a1b611de468fe902088ae1cb7b42a75ea
+-- hash: e6ab2dc94bad96b3589f53dd24557946e0662a17ceef6ac95ef3106d4894432b
 
 name:           excelent
 version:        0.1.0.0
@@ -28,6 +28,7 @@ source-repository head
 library
   exposed-modules:
       Excelent.Definition
+      Excelent.Eval.Checker
       Excelent.Eval.Eval
       Excelent.Eval.Graph
       Excelent.Parser
