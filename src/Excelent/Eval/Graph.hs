@@ -65,7 +65,7 @@ insertAndEvalGraph pos expr env
         cycles = checkCycles invalidated
         typeChecked = fst (foldr (\pos (m, _) ->
             checkType (fromJust (M.lookup pos (m ^. formulas))) pos m)
-                (cycles, TEmpty) (Prelude.reverse toRecalculate))
+                (cycles, TEmpty) toRecalculate)
 
 checkCycles :: Env -> Env
 checkCycles env = foldr insertError env (concatMap onlyCycles cyclicGraphs)
