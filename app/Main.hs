@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Main where
@@ -207,23 +208,21 @@ handleEvent s (VtyEvent e@(EvKey key [])) =
         KEsc   -> halt s
         KEnter -> continue $ show' (s & isEditing %~ not)
         KLeft  -> continue $
-            if s ^. focusRing' ^. focus ^. _2 == 0
-                then show' $ s & env . port . position . _2 -~ 1
-                else s & focusRing' . focus . _2 -~ 1
+            updateFocusOrViewport s _2 0 (-1)
         KRight -> continue $
-            if s ^. focusRing' ^. focus ^. _2 == s ^. env . port . size . _2 - 1
-                then show' $ s & env . port . position . _2 +~ 1
-                else s & focusRing' . focus . _2 +~ 1
+            updateFocusOrViewport s _2 (s ^. env . port . size . _2 - 1) 1
         KUp    -> continue $
-            if s ^. focusRing' ^. focus ^. _1 == 0
-                then show' $ s & env . port . position . _1 -~ 1
-                else s & focusRing' . focus . _1 -~ 1
+            updateFocusOrViewport s _1 0 (-1)
         KDown  -> continue $
-            if s ^. focusRing' ^. focus ^. _1 == s ^. env . port . size . _1 - 1
-                then show' $ s & env . port . position . _1 +~ 1
-                else s & focusRing' . focus . _1 +~ 1
+            updateFocusOrViewport s _1 (s ^. env . port . size . _1 - 1) 1
         _      -> continue s
 handleEvent s _ = continue s
+
+updateFocusOrViewport :: State -> Lens Position Position Int Int -> Int -> Int -> State
+updateFocusOrViewport s lens check i
+    = if s ^. focusRing' ^. focus ^. lens == check
+        then show' $ s & env . port . position . lens +~ i
+        else s & focusRing' . focus . lens +~ i
 
 -- | The attribute map that should be used during rendering.
 -- This determines how widgets with a certain attribute (name) look.
