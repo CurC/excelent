@@ -29,6 +29,7 @@ The environment the program start with contains a chain of integer references, a
   - References (Relative, Absolute)
   - Operators (+)
 - Seperate layers for expressions and values
+  - Both layers use Data.Map as underlying data store, so the size of the sheet is limited by memory (and or traversal time of Data.Map, considering lookup isn't constant)
   - Ensures that expressions are evaluated at most once
   - The moment a cell is evaluated, the value is inserted into the view layer of the environment and reused
   - Any expression containing a reference first checks if that reference has been calculated before

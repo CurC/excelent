@@ -37,6 +37,7 @@ import Excelent.Eval.Eval
 import Excelent.Eval.Graph
 import Excelent.Parser
 import Excelent.Print
+import Debug.Trace
 
 type Cell = Editor String Position
 
@@ -99,6 +100,7 @@ editors vp = array ((0, 0), (rows, cols))
     | i <- [0..rows], j <- [0..cols]
     ]
   where
+    (posR, posC) = vp ^. position
     (rows, cols) = (vp & size.both -~ 1)^.size
 
 app :: App State e (Int, Int)
@@ -124,13 +126,16 @@ show' :: State -> State
 show' state = state & widgets %~ (// editors')
   where
     editors' =
-        [ ((i, j), editors')
+        [ ((i, j), editors'')
         | i <- [0..rows - 1], j <- [0..cols - 1]
-        , let editors' = if state^.focusRing'.focus == (i, j) && state^.isEditing
-                         then swapEditorContentsWith (printF (i, j) (state^.env.formulas)) (gW (i, j))
-                         else swapEditorContentsWith (printV (i, j) (state^.env.view)) (gW (i, j))
+        , let editors'' = if state^.focusRing'.focus == (i, j) && state^.isEditing
+                         then swapEditorContentsWith (printF (pRows + i, pCols + j)
+                            (state^.env.formulas)) (gW (i, j))
+                         else swapEditorContentsWith (printV (pRows + i, pCols + j)
+                            (state^.env.view)) (gW (i, j))
         ]
     gW = getEditor state
+    (pRows, pCols) = state^.env.port.position
     (rows, cols) = state^.env.port.size
 
 draw :: State -> [Widget (Int, Int)]
@@ -141,17 +146,18 @@ draw s = [table]
         $ intersperse hBorder
         $ tableData & mapped %~ vLimit 1 . hBox . intersperse vBorder
     tableData = zipWith (:) headerColumnData (headerRowData:rowData)
+    (posRows, posColumns) = s ^. env . port . position
     (numberOfRows, numberOfColumns) = s ^. env . port . size
     headerColumnData =
-        [ withAttr n $ padLeftRight 1 $ str $ if i == 0 then " " else show (i - 1)
-        | i <- [0..numberOfRows]
-        , let isFocused = s^.focusRing'.focus._1 == i - 1
+        [ withAttr n $ padLeftRight 1 $ str $ if i == posRows then " " else show (i - 1)
+        | i <- [posRows..posRows + numberOfRows]
+        , let isFocused = (s^.focusRing'.focus._1 + s^.env.port.position._1) == i - 1
         , let n = "headerCell" <> if isFocused then "focused" else mempty
         ]
     headerRowData =
         [ withAttr n $ hCenter $ str $ show (j - 1)
-        | j <- [1..numberOfColumns]
-        , let isFocused = s^.focusRing'.focus._2 == j - 1
+        | j <- [posColumns + 1..posColumns + numberOfColumns]
+        , let isFocused = (s^.focusRing'.focus._2 + s^.env.port.position._2) == j - 1
         , let n = "headerCell" <> if isFocused then "focused" else mempty
         ]
     rowData = toList' $ s ^. widgets & mapped %~
@@ -172,12 +178,13 @@ chooseCursor s =
 updateEditors :: State -> State
 updateEditors state = show' state'
   where
+    internalPos  = state^.env.port.position + state^.focusRing'.focus
     pos          = state^.focusRing'.focus
     insertedText = getEditContents $ (state^.widgets) ! pos
     parsed       = P.parse expression "" $ concat insertedText
     newEnv       = case parsed of
         Left err   -> state^.env
-        Right expr -> insertAndEvalGraph pos expr $ state^.env
+        Right expr -> insertAndEvalGraph internalPos expr $ state^.env
     state' = state & env .~ newEnv
     env'   = state'^. env
 
@@ -199,10 +206,22 @@ handleEvent s (VtyEvent e@(EvKey key [])) =
     handler2 = case key of
         KEsc   -> halt s
         KEnter -> continue $ show' (s & isEditing %~ not)
-        KLeft  -> continue $ s & focusRing' . focus . _2 -~ 1
-        KRight -> continue $ s & focusRing' . focus . _2 +~ 1
-        KUp    -> continue $ s & focusRing' . focus . _1 -~ 1
-        KDown  -> continue $ s & focusRing' . focus . _1 +~ 1
+        KLeft  -> continue $
+            if s ^. focusRing' ^. focus ^. _2 == 0
+                then show' $ s & env . port . position . _2 -~ 1
+                else s & focusRing' . focus . _2 -~ 1
+        KRight -> continue $
+            if s ^. focusRing' ^. focus ^. _2 == s ^. env . port . size . _2 - 1
+                then show' $ s & env . port . position . _2 +~ 1
+                else s & focusRing' . focus . _2 +~ 1
+        KUp    -> continue $
+            if s ^. focusRing' ^. focus ^. _1 == 0
+                then show' $ s & env . port . position . _1 -~ 1
+                else s & focusRing' . focus . _1 -~ 1
+        KDown  -> continue $
+            if s ^. focusRing' ^. focus ^. _1 == s ^. env . port . size . _1 - 1
+                then show' $ s & env . port . position . _1 +~ 1
+                else s & focusRing' . focus . _1 +~ 1
         _      -> continue s
 handleEvent s _ = continue s
 
