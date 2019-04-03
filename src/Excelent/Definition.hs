@@ -118,8 +118,11 @@ initialEnv = Env {
 demo :: Env
 demo = Env {
         _formulas = M.fromList [
+                ((2, 1), RefRel (0, -1)),
+                ((2, 0), RefAbs (2, 0)),
                 ((1, 2), Plus (RefRel (0, -1)) (ConstInt 1)),
-                ((1, 1), Plus (RefRel (0, -1)) (ConstInt 1)),
+                ((1, 2), Plus (RefRel (0, -1)) (ConstInt 1)),
+                ((1, 1), RefRel (0, -1)),
                 ((0, 4), Plus (RefRel (0, -1)) (ConstInt 1)),
                 ((0, 3), Plus (RefRel (0, -1)) (ConstInt 1)),
                 ((0, 2), Plus (RefRel (0, -1)) (ConstInt 1)),

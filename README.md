@@ -6,7 +6,20 @@ Curtis Chin Jen Sem - 5601118
 Daniel Kamphorst    - ?  
 Noud   Savenije     - ?
 
-The environment the program start with contains both a chain of integer references and a chain referencing an empty cell. 
+# Usage: 
+The environment the program start with contains a chain of integer references, a chain referencing an empty cell, and a chain referencing a cycle. 
+
+- Arrow keys to move  
+- Switching modes is done using the Enter key, there are 2 modes
+  - Edit mode where it is possible to edit the expression in the current cell
+  - View mode where navigation is possible
+- The Escape key exits the program
+- Expression notation:
+  - Integers: `1`, `-2`, `123213` 
+  - Double: `1.0`, `2.01`, `1.0e-12` 
+  - Absolute references: `(1, 3)`, `(91, 1212)`
+  - Relative references: `$(0, 0)`, `$(1, 0)`
+  - Plus: `$(0, 0) + 3`, `1.0 + $(1, 0)`
 
 # Supported functionality
 - Expressions
@@ -40,6 +53,6 @@ The environment the program start with contains both a chain of integer referenc
     - Parser.hs: Contains the expression parser
     - Print.hs: Contains usefull functions for printing the content of cells
     - Eval/
-      - Eval: Contains the main evaluation function
-      - Graph: Contains functions for generating graphs from expressions
+      - Eval: Contains the expression evaluating function
+      - Graph: Contains functions for generating graphs from expressions. Also contains the code for complete, partial updates and error detection.
       - Checker: Contains the type checking function
