@@ -17,8 +17,9 @@ The environment the program start with contains a chain of integer references, a
 - Expression notation:
   - Integers: `1`, `-2`, `123213` 
   - Double: `1.0`, `2.01`, `1.0e-12` 
-  - Absolute references: `(1, 3)`, `(91, 1212)`
-  - Relative references: `$(0, 0)`, `$(1, 0)`
+  - References: Tuples are written as `(y, x)` (or `(rows, columns)`)
+    - Absolute references: `(1, 3)`, `(91, 1212)`
+    - Relative references: `$(0, 0)`, `$(1, 0)`
   - Plus: `$(0, 0) + 3`, `1.0 + $(1, 0)`
 
 # Supported functionality
