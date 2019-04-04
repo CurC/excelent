@@ -150,11 +150,14 @@ draw s = [table]
     (posRows, posColumns) = s ^. env . port . position
     (numberOfRows, numberOfColumns) = s ^. env . port . size
     headerColumnData =
-        [ withAttr n $ padLeftRight 1 $ str $ if i == posRows then " " else show (i - 1)
-        | i <- [posRows..posRows + numberOfRows]
-        , let isFocused = (s^.focusRing'.focus._1 + s^.env.port.position._1) == i - 1
-        , let n = "headerCell" <> if isFocused then "focused" else mempty
-        ]
+        let m = maximum $ [posRows .. posRows + numberOfRows - 1] & mapped %~ textWidth . show
+        in  [ withAttr n $ pad $ str $ if i == posRows then " " else show (i - 1)
+            | i <- [posRows .. posRows + numberOfRows]
+            , let isFocused = s^.focusRing'.focus._1 + s^.env.port.position._1 == i - 1
+            , let n = "headerCell" <> if isFocused then "focused" else mempty
+            , let k = fromIntegral (m - textWidth (show i)) / 2 + 1
+            , let pad = padLeft (Pad $ floor k) . padRight (Pad $ ceiling k)
+            ]
     headerRowData =
         [ withAttr n $ hCenter $ str $ show (j - 1)
         | j <- [posColumns + 1..posColumns + numberOfColumns]
