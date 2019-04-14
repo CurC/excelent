@@ -3,11 +3,12 @@ module Excelent.Eval.Eval where
 import qualified Data.Map as M
 import qualified Data.Set as S
 import Algebra.Graph.AdjacencyMap as G
+import Control.Monad
+import Control.Monad.State
 import Data.Functor.Foldable
 import Excelent.Definition
 import Data.NumInstances.Tuple
-import Control.Lens hiding (view, Empty)
-import Control.Lens.Combinators hiding (view, Empty)
+import Control.Lens hiding (Empty, view)
 
 -- | The algebra expressing the evaluation of Expr structures into its results.
 -- Expressions are dependent on the environment supplied and can on its own
@@ -54,19 +55,21 @@ evalExpr = cata evalAlg
 -- | Ensures that the cell at the given position is evaluated, or in other words,
 -- that the view record in the environment contains a value for the cell at
 -- the position
-evalCell :: Position -> Env -> Env
-evalCell pos env = case M.lookup pos (env ^. view) of
-    Just v -> env
-    Nothing -> case M.lookup pos (env ^. formulas) of
-        Just expr -> env & view %~ M.insert pos (snd $ evalExpr expr pos env)
-        Nothing -> env & view %~ M.insert pos (Left $ NoError "")
+evalCell :: Position -> Excel ()
+evalCell pos = do
+    env <- get
+    put $ case M.lookup pos (env ^. view) of
+        Just v -> env
+        Nothing -> case M.lookup pos (env ^. formulas) of
+            Just expr -> env & view %~ M.insert pos (snd $ evalExpr expr pos env)
+            Nothing -> env & view %~ M.insert pos (Left $ NoError "")
 
 -- | Evaluate all of the cells 'visible' to the viewport
-eval :: Env -> Env
-eval env = resultEnv
-    where
-        resultEnv = foldr evalCell env positions
-        positions = concat $ inView $ env ^. port
+eval :: Excel ()
+eval = do
+    env <- get
+    let positions = concat $ inView $ env ^. port
+    mapM_ evalCell positions
 
 -- | Generates all positions which are in view as a list of columns
 inView :: ViewPort -> [[Position]]
@@ -78,10 +81,11 @@ inView vp =
 -- | Removes the values in the ViewData in the environment at the given positions,
 -- so that they can be recalculated. The types of the cells also need to be
 -- recalculated
-invalidateView :: [Position] -> Env -> Env
-invalidateView ps env
-    = env
-        & view %~ (`M.withoutKeys` set)
-        & types %~ (`M.withoutKeys` set)
-    where
-        set = S.fromList ps
+invalidateView :: [Position] -> Excel ()
+invalidateView ps
+    = do
+        env <- get
+        let set = S.fromList ps
+        put $ env
+            & view %~ (`M.withoutKeys` set)
+            & types %~ (`M.withoutKeys` set)

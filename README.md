@@ -7,7 +7,8 @@ Daniel Kamphorst    - ?
 Noud   Savenije     - ?
 
 # Usage: 
-The environment the program start with contains a chain of integer references, a chain referencing an empty cell, and a chain referencing a cycle. 
+The environment the program start with contains a chain of integer references, 
+a chain referencing an empty cell, and a chain referencing a cycle. 
 
 - Arrow keys to move  
 - Switching modes is done using the Enter key, there are 2 modes

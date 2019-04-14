@@ -1,9 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveTraversable #-}
@@ -13,8 +10,8 @@ module Excelent.Definition where
 
 import Algebra.Graph.AdjacencyMap as GA
 import Control.Lens hiding (Empty)
-import Control.Lens.Combinators hiding (view, Empty)
 import Control.Lens.Getter
+import Control.Monad.State
 import Data.Functor.Foldable
 import Data.Functor.Foldable.TH
 import GHC.Generics (Generic)
@@ -83,6 +80,8 @@ data Env = Env {
         _graph :: NodeGraph
     } deriving (Show)
 
+type Excel a = State Env a
+
 data ViewPort = ViewPort {
         _position :: Position,
         _size :: Size
@@ -93,15 +92,15 @@ makeLenses ''ViewPort
 
 initial :: ViewPort -> Env
 initial nPort = demo & port .~ nPort
-    --     Env {
-    --     _formulas = M.empty,
-    --     _view = M.empty,
-    --     _graph = = NodeGraph {
-    --         _deps = GA.empty
-    --         _types = M.empty
-    --     },
-    --     port = port
-    -- }
+
+none :: ViewPort -> Env
+none port = Env {
+        _formulas = M.empty,
+        _view = M.empty,
+        _types = M.empty,
+        _graph = GA.empty,
+        _port = port
+    }
 
 initialEnv :: Env
 initialEnv = Env {

@@ -5,11 +5,10 @@
 module Main where
 
 import Data.Array
-import Data.List
 import Control.Lens hiding (view)
-import Control.Lens.Combinators hiding (view)
 import Control.Lens.Getter hiding (view)
 import Control.Lens.Lens (Lens', (&))
+import Control.Monad.State (get, put, execState)
 import Control.Lens.Setter
 import Control.Lens.Tuple
 import Data.List (groupBy, intersperse)
@@ -85,7 +84,7 @@ initialState = State
     { _focusRing' = focusRing $ Data.Array.indices editors'
     , _widgets = editors'
     , _isEditing = False
-    , _env = eval $ initializeGraph $ initial viewport
+    , _env = execState (do initializeGraph; eval) (initial viewport)
     }
   where
     editors' = editors viewport
@@ -151,12 +150,13 @@ draw s = [table]
     (numberOfRows, numberOfColumns) = s ^. env . port . size
     headerColumnData =
         let m = maximum $ [posRows .. posRows + numberOfRows - 1] & mapped %~ textWidth . show
-        in  [ withAttr n $ pad $ str $ if i == posRows then " " else show (i - 1)
+        in  [ withAttr n $ pad $ str headerString
             | i <- [posRows .. posRows + numberOfRows]
             , let isFocused = s^.focusRing'.focus._1 + s^.env.port.position._1 == i - 1
             , let n = "headerCell" <> if isFocused then "focused" else mempty
-            , let k = fromIntegral (m - textWidth (show i)) / 2 + 1
-            , let pad = padLeft (Pad $ floor k) . padRight (Pad $ ceiling k)
+            , let headerString = if i == posRows then " " else show (i - 1)
+            , let k = m - textWidth headerString
+            , let pad = padLeft (Pad (k + 2)) . padRight (Pad 1)
             ]
     headerRowData =
         [ withAttr n $ hCenter $ str $ show (j - 1)
@@ -188,9 +188,8 @@ updateEditors state = show' state'
     parsed       = P.parse expression "" $ concat insertedText
     newEnv       = case parsed of
         Left err   -> state^.env
-        Right expr -> insertAndEvalGraph internalPos expr $ state^.env
+        Right expr -> execState (insertAndEvalGraph internalPos expr) (state^.env)
     state' = state & env .~ newEnv
-    env'   = state'^. env
 
 -- | This function takes the current application state and an event and returns
 -- an action to be taken and a corresponding transformed application state.

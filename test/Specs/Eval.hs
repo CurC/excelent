@@ -5,7 +5,6 @@ import Test.Tasty.QuickCheck
 import Test.QuickCheck
 
 import Control.Lens
-import Control.Lens.Combinators hiding (view)
 import Control.Lens.Getter
 import qualified Algebra.Graph.AdjacencyMap as GA
 import qualified Data.Map as M
@@ -68,10 +67,10 @@ emptyEnv = Env {
 
 expectInt :: ViewValue -> Int
 expectInt v = case v of
-    Left s -> error ("Expected Int, got: " ++ s)
-    Right i -> i
+    Left (Error s) -> error ("Expected Int, got: " ++ s)
+    Right (I i) -> i
 
 expectError :: ViewValue -> String
 expectError v = case v of
-    Left s -> s
+    Left (Error s) -> s
     Right i -> error ("Expected String, got: " ++ show i)

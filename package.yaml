@@ -26,6 +26,8 @@ library:
   source-dirs: src
   dependencies:
   - containers
+  - transformers
+  - monads-tf
   - recursion-schemes
   - boxes
   - algebraic-graphs
