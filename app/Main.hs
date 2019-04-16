@@ -28,7 +28,6 @@ import Brick.Widgets.Border.Style
 import Brick.Widgets.Center
 import Brick.Widgets.Core
 import Brick.Widgets.Edit
-import Graphics.Vty
 import Graphics.Vty.Attributes
 import Graphics.Vty.Input.Events
 
@@ -218,13 +217,26 @@ handleEvent s (VtyEvent e@(EvKey key [])) =
         KDown  -> continue $
             updateFocusOrViewport s _1 (s ^. env . port . size . _1 - 1) 1
         _      -> continue s
+handleEvent s (VtyEvent e@(EvResize x y))
+    = continue (show' (resize s (x, y)))
 handleEvent s _ = continue s
+
+resize :: State -> (Int, Int) -> State
+resize s (x, y) = s & focusRing' .~ focusRing (Data.Array.indices newEditors)
+                    & widgets .~ newEditors
+                    & env . port .~ newPort
+    where
+        newEditors = editors newPort
+        newPort = (s ^. env . port) & size . _1 .~ (y `quot` 2) - 1
 
 updateFocusOrViewport :: State -> Lens Position Position Int Int -> Int -> Int -> State
 updateFocusOrViewport s lens check i
-    = if s ^. focusRing' ^. focus ^. lens == check
-        then show' $ s & env . port . position . lens +~ i
-        else s & focusRing' . focus . lens +~ i
+    | check == 0 && s ^. env . port . position . lens == 0
+    = s
+    | s ^. focusRing' ^. focus ^. lens == check
+    = show' $ s & env . port . position . lens +~ i
+    | otherwise
+    = s & focusRing' . focus . lens +~ i
 
 -- | The attribute map that should be used during rendering.
 -- This determines how widgets with a certain attribute (name) look.

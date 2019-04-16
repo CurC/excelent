@@ -38,7 +38,7 @@ absRefValid pos i = i == expectInt (snd (evalExpr (RefRel pos) (0, 0) env))
 
 absRefRandom :: [(Int, Int)] -> (Int, Int) -> Int -> Bool
 absRefRandom insPs refP i = if refP `elem` insPs
-        then i == expectInt (evaluated)
+        then i == expectInt evaluated
         else case evaluated of
             Left _ -> True
             Right _ -> False
