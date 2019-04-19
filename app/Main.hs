@@ -120,9 +120,9 @@ show' state = state & widgets %~ (// editors')
         | i <- [0..rows - 1], j <- [0..cols - 1]
         , let pos = state^.env.port.position & _1 +~ i & _2 +~ j
         , let editors'' = flip swapEditorContentsWith (getEditor state (i, j)) $
-            if state^.focusRing'.focus == (i, j) && state^.isEditing
-            then printF pos $ state^.env.formulas
-            else printV pos $ state^.env.view
+                if state^.focusRing'.focus == (i, j) && state^.isEditing
+                    then printF pos $ state^.env.formulas
+                    else printV pos $ state^.env.view
         ]
     (rows, cols) = state^.env.port.size
 
@@ -138,11 +138,11 @@ draw s = [table]
     (numberOfRows, numberOfColumns) = s^.env.port.size
     headerColumnData =
         let m = maximum $ [posRows .. posRows + numberOfRows - 1]
-            & mapped %~ textWidth . show
+                & mapped %~ textWidth . show
         in  [ withAttr n $ pad $ str headerString
             | i <- [posRows .. posRows + numberOfRows]
             , let isFocused =
-                s^.focusRing'.focus._1 + s^.env.port.position._1 == i - 1
+                    s^.focusRing'.focus._1 + s^.env.port.position._1 == i - 1
             , let n = "headerCell" <> if isFocused then "focused" else mempty
             , let headerString = if i == posRows then " " else show (i - 1)
             , let k = m - textWidth headerString
@@ -152,12 +152,12 @@ draw s = [table]
         [ withAttr n $ hCenter $ str $ show (j - 1)
         | j <- [posColumns + 1 .. posColumns + numberOfColumns]
         , let isFocused =
-            s^.focusRing'.focus._2 + s^.env.port.position._2 == j - 1
+                s^.focusRing'.focus._2 + s^.env.port.position._2 == j - 1
         , let n = "headerCell" <> if isFocused then "focused" else mempty
         ]
     rowData =
         let f = padLeftRight 1
-            . withFocusRing (s^.focusRing') (renderEditor $ str . head)
+                . withFocusRing (s^.focusRing') (renderEditor $ str . head)
         in toList' $ s^.widgets & mapped %~ f
 
 -- | This function chooses which of the zero or more cursor locations reported
@@ -223,7 +223,9 @@ resize s (x, y) = s & focusRing' .~ focusRing (Data.Array.indices newEditors)
 
 updateFocusOrViewport :: State -> Lens Position Position Int Int -> Int -> Int -> State
 updateFocusOrViewport s lens check i
-    | check == 0 && s ^. env . port . position . lens == 0
+    | check == 0
+        && s ^. focusRing' . focus . lens == 0
+        && s ^. env . port . position . lens == 0
     = s
     | s^.focusRing'.focus.lens == check
     = show' $ s & env.port.position.lens +~ i

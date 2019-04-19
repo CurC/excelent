@@ -3,10 +3,11 @@ module Excelent.Print where
 
 import Excelent.Definition
 import qualified Data.Map as M
+import Data.Maybe
 
 -- | Prints the expression in the given position using its show instance
 printF :: Position -> FormulaData -> String
-printF p f = fromMaybe "" $ show <$> M.lookup p f
+printF p f = maybe "" show (M.lookup p f)
 
 -- | Prints the calculated value in the given position, otherwise nothing
 printV :: Position -> ViewData -> String
