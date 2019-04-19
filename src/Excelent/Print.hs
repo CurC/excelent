@@ -1,9 +1,9 @@
 {-# LANGUAGE LambdaCase #-}
 module Excelent.Print where
 
+import Data.Maybe
 import Excelent.Definition
 import qualified Data.Map as M
-import Data.Maybe
 
 -- | Prints the expression in the given position using its show instance
 printF :: Position -> FormulaData -> String

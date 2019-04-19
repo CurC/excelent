@@ -3,8 +3,8 @@
 
 Authors:  
 Curtis Chin Jen Sem - 5601118  
-Daniel Kamphorst    - ?  
-Noud   Savenije     - ?
+Daniel Kamphorst    - 6050107
+Noud   Savenije     - 4302907
 
 # Usage: 
 The environment the program start with contains a chain of integer references, 
