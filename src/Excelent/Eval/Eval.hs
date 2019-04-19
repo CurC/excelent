@@ -38,12 +38,13 @@ doLookup :: Position -> Env -> (Env, ViewValue)
 doLookup pos env = case M.lookup pos (env^.formulas) of
     Nothing    -> emptyCellReference
     Just Empty -> emptyCellReference
-    Just e     -> case M.lookup pos (env^.view) of
-        Nothing -> cata evalAlg e pos env & _1.view %~ M.insert pos val
+    Just e -> case M.lookup pos (env^.view) of
+        Nothing ->
+            let (newEnv, val) = cata evalAlg e pos env
+            in (newEnv & view %~ M.insert pos val, val)
         Just e' -> (env, e')
   where
     emptyCellReference = (env, Left $ Warning "Empty cell referenced")
-
 
 -- | Evaluate the given expression using the current position and its environment.
 -- This is done using a catamorphism, which is automatically derived using the
