@@ -19,15 +19,15 @@ evalAlg EmptyF            _   env = (env, Left $ NoError "")
 evalAlg (ConstIntF i)     _   env = (env, Right (I i))
 evalAlg (ConstDoubleF d)  _   env = (env, Right (D d))
 evalAlg (PlusF exp1 exp2) pos env = (env2, do
-        i <- vval1
-        j <- vval2
-        sumVals i j)
-    where
-        sumVals (I i1) (I i2) = Right (I (i1 + i2))
-        sumVals (D d1) (D d2) = Right (D (d1 + d2))
-        sumVals _ _ = Left $ InternalError "Missed type error"
-        (env1, vval1) = exp1 pos env
-        (env2, vval2) = exp2 pos env1
+    i <- vval1
+    j <- vval2
+    sumVals i j)
+  where
+    sumVals (I i1) (I i2) = Right (I (i1 + i2))
+    sumVals (D d1) (D d2) = Right (D (d1 + d2))
+    sumVals _ _ = Left $ InternalError "Missed type error"
+    (env1, vval1) = exp1 pos env
+    (env2, vval2) = exp2 pos env1
 evalAlg (RefRelF p) pos env = doLookup (pos + p) env
 evalAlg (RefAbsF p) pos env = doLookup p env
 
@@ -35,15 +35,14 @@ evalAlg (RefAbsF p) pos env = doLookup p env
 -- calculated, or calculate it and save any cells calculated along the way in
 -- the environment
 doLookup :: Position -> Env -> (Env, ViewValue)
-doLookup pos env = case M.lookup pos (env ^. formulas) of
-    Nothing -> emptyCellReference
+doLookup pos env = case M.lookup pos (env^.formulas) of
+    Nothing    -> emptyCellReference
     Just Empty -> emptyCellReference
-    Just e -> case M.lookup pos (env^.view) of
-        Nothing -> let (newEnv, val) = cata evalAlg e pos env in
-            (newEnv & view %~ M.insert pos val, val)
+    Just e     -> case M.lookup pos (env^.view) of
+        Nothing -> cata evalAlg e pos env & _1.view %~ M.insert pos val
         Just e' -> (env, e')
-    where
-        emptyCellReference = (env, Left $ Warning "Empty cell referenced")
+  where
+    emptyCellReference = (env, Left $ Warning "Empty cell referenced")
 
 
 -- | Evaluate the given expression using the current position and its environment.
@@ -58,34 +57,30 @@ evalExpr = cata evalAlg
 evalCell :: Position -> Excel ()
 evalCell pos = do
     env <- get
-    put $ case M.lookup pos (env ^. view) of
-        Just v -> env
-        Nothing -> case M.lookup pos (env ^. formulas) of
-            Just expr -> env & view %~ M.insert pos (snd $ evalExpr expr pos env)
-            Nothing -> env & view %~ M.insert pos (Left $ NoError "")
+    put $ case M.lookup pos (env^.view) of
+        Just _  -> env
+        Nothing -> env & view %~ M.insert pos (case M.lookup pos (env^.formulas) of
+            Just expr -> snd $ evalExpr expr pos env
+            Nothing   -> Left $ NoError "")
 
 -- | Evaluate all of the cells 'visible' to the viewport
 eval :: Excel ()
 eval = do
     env <- get
-    let positions = concat $ inView $ env ^. port
+    let positions = concat $ inView $ env^.port
     mapM_ evalCell positions
 
 -- | Generates all positions which are in view as a list of columns
 inView :: ViewPort -> [[Position]]
 inView vp =
-    [[(vp ^. position . _1 + i, vp ^. position . _2 + j) |
-        i <- [0..vp ^. size . _1]] |
-        j <- [0..vp ^. size . _2]]
+    [ [vp^.position & _1 +~ i & _2 +~ j | i <- [0 .. vp^.size._1]]
+    | j <- [0 .. vp^.size._2]
+    ]
 
 -- | Removes the values in the ViewData in the environment at the given positions,
 -- so that they can be recalculated. The types of the cells also need to be
 -- recalculated
 invalidateView :: [Position] -> Excel ()
-invalidateView ps
-    = do
-        env <- get
-        let set = S.fromList ps
-        put $ env
-            & view %~ (`M.withoutKeys` set)
-            & types %~ (`M.withoutKeys` set)
+invalidateView ps =
+  let f = (`M.withoutKeys` S.fromList ps)
+  in modify ((types %~ f) . (view %~ f))

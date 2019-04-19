@@ -20,15 +20,15 @@ typeAlg (PlusF exp1 exp2) pos = do
     t2 <- exp2 pos
     let typeError = typeErrorString (show t1 ++ " + " ++ show t2)
     env <- get
-    if (t1 /= t2) || t1 == TInvalid || t2 == TInvalid
+    if t1 /= t2 || t1 == TInvalid || t2 == TInvalid
         then do
             put (env & view %~ M.insert pos typeError)
             insertType pos TInvalid
         else insertType pos t1
-typeAlg (RefRelF p)       pos = do
+typeAlg (RefRelF p) pos = do
     t <- fetchType (p + pos)
     insertType pos t
-typeAlg (RefAbsF p)       pos = do
+typeAlg (RefAbsF p) pos = do
     t <- fetchType p
     insertType pos t
 
@@ -44,11 +44,11 @@ insertType pos t = do
 fetchType :: Position -> Excel Type
 fetchType pos = do
     env <- get
-    case M.lookup pos (env ^. types) of
-        Just t -> return t
-        Nothing -> case M.lookup pos (env ^. formulas) of
+    case M.lookup pos (env^.types) of
+        Just t  -> return t
+        Nothing -> case M.lookup pos (env^.formulas) of
             Just expr -> checkType expr pos
-            Nothing -> return TEmpty
+            Nothing   -> return TEmpty
 
 typeErrorString :: String -> Either Error Value
 typeErrorString s = Left (TypeError s)

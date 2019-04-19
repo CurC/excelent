@@ -66,15 +66,6 @@ toList' = (mapped.mapped %~ snd)
 focus :: Eq n => Lens' (FocusRing n) n
 focus f = \r -> flip focusSetCurrent r <$> f (fromJust $ focusGetCurrent r)
 
--------------------------------------------------------------------------------
---
--- TODO : Viewport movement
--- TODO : Fix Viewport boundaries moving left when at zero should do nothing
--- TODO : Tests
--- TODO : Documentation
---
--------------------------------------------------------------------------------
-
 main :: IO State
 main = defaultMain app initialState
 
@@ -83,7 +74,7 @@ initialState = State
     { _focusRing' = focusRing $ Data.Array.indices editors'
     , _widgets = editors'
     , _isEditing = False
-    , _env = execState (do initializeGraph; eval) (initial viewport)
+    , _env = execState (initializeGraph >> eval) (initial viewport)
     }
   where
     editors' = editors viewport
@@ -99,7 +90,7 @@ editors vp = array ((0, 0), (rows, cols))
     | i <- [0..rows], j <- [0..cols]
     ]
   where
-    (posR, posC) = vp ^. position
+    (posR, posC) = vp^.position
     (rows, cols) = (vp & size.both -~ 1)^.size
 
 app :: App State e (Int, Int)
@@ -127,14 +118,12 @@ show' state = state & widgets %~ (// editors')
     editors' =
         [ ((i, j), editors'')
         | i <- [0..rows - 1], j <- [0..cols - 1]
-        , let editors'' = if state^.focusRing'.focus == (i, j) && state^.isEditing
-                         then swapEditorContentsWith (printF (pRows + i, pCols + j)
-                            (state^.env.formulas)) (gW (i, j))
-                         else swapEditorContentsWith (printV (pRows + i, pCols + j)
-                            (state^.env.view)) (gW (i, j))
+        , let pos = state^.env.port.position & _1 +~ i & _2 +~ j
+        , let editors'' = flip swapEditorContentsWith (getEditor state (i, j)) $
+            if state^.focusRing'.focus == (i, j) && state^.isEditing
+            then printF pos $ state^.env.formulas
+            else printV pos $ state^.env.view
         ]
-    gW = getEditor state
-    (pRows, pCols) = state^.env.port.position
     (rows, cols) = state^.env.port.size
 
 draw :: State -> [Widget (Int, Int)]
@@ -145,13 +134,15 @@ draw s = [table]
         $ intersperse hBorder
         $ tableData & mapped %~ vLimit 1 . hBox . intersperse vBorder
     tableData = zipWith (:) headerColumnData (headerRowData:rowData)
-    (posRows, posColumns) = s ^. env . port . position
-    (numberOfRows, numberOfColumns) = s ^. env . port . size
+    (posRows, posColumns) = s^.env.port.position
+    (numberOfRows, numberOfColumns) = s^.env.port.size
     headerColumnData =
-        let m = maximum $ [posRows .. posRows + numberOfRows - 1] & mapped %~ textWidth . show
+        let m = maximum $ [posRows .. posRows + numberOfRows - 1]
+            & mapped %~ textWidth . show
         in  [ withAttr n $ pad $ str headerString
             | i <- [posRows .. posRows + numberOfRows]
-            , let isFocused = s^.focusRing'.focus._1 + s^.env.port.position._1 == i - 1
+            , let isFocused =
+                s^.focusRing'.focus._1 + s^.env.port.position._1 == i - 1
             , let n = "headerCell" <> if isFocused then "focused" else mempty
             , let headerString = if i == posRows then " " else show (i - 1)
             , let k = m - textWidth headerString
@@ -159,12 +150,15 @@ draw s = [table]
             ]
     headerRowData =
         [ withAttr n $ hCenter $ str $ show (j - 1)
-        | j <- [posColumns + 1..posColumns + numberOfColumns]
-        , let isFocused = (s^.focusRing'.focus._2 + s^.env.port.position._2) == j - 1
+        | j <- [posColumns + 1 .. posColumns + numberOfColumns]
+        , let isFocused =
+            s^.focusRing'.focus._2 + s^.env.port.position._2 == j - 1
         , let n = "headerCell" <> if isFocused then "focused" else mempty
         ]
-    rowData = toList' $ s ^. widgets & mapped %~
-        padLeftRight 1 . withFocusRing (s^.focusRing') (renderEditor $ str . head)
+    rowData =
+        let f = padLeftRight 1
+            . withFocusRing (s^.focusRing') (renderEditor $ str . head)
+        in toList' $ s^.widgets & mapped %~ f
 
 -- | This function chooses which of the zero or more cursor locations reported
 -- by the rendering process should be selected as the one to use to place the
@@ -182,12 +176,13 @@ updateEditors :: State -> State
 updateEditors state = show' state'
   where
     internalPos  = state^.env.port.position + state^.focusRing'.focus
-    pos          = state^.focusRing'.focus
+    pos = state^.focusRing'.focus
     insertedText = getEditContents $ (state^.widgets) ! pos
-    parsed       = P.parse expression "" $ concat insertedText
-    newEnv       = case parsed of
+    parsed = P.parse expression "" $ concat insertedText
+    newEnv = case parsed of
         Left err   -> state^.env
-        Right expr -> execState (insertAndEvalGraph internalPos expr) (state^.env)
+        Right expr -> execState (insertAndEvalGraph internalPos expr) $
+            state^.env
     state' = state & env .~ newEnv
 
 -- | This function takes the current application state and an event and returns
@@ -203,40 +198,37 @@ handleEvent s (VtyEvent e@(EvKey key [])) =
         KEnter -> handleEvent (updateEditors $ s & isEditing %~ not) $
             VtyEvent $ EvKey KDown []
         _      -> do
-            ed <- handleEditorEvent e $ (s ^. widgets) ! (s^. focusRing' .focus)
+            ed <- handleEditorEvent e $ (s^.widgets) ! (s^.focusRing'.focus)
             continue $ s & widgets %~ (// [(s^.focusRing'.focus, ed)])
     handler2 = case key of
         KEsc   -> halt s
-        KEnter -> continue $ show' (s & isEditing %~ not)
-        KLeft  -> continue $
-            updateFocusOrViewport s _2 0 (-1)
+        KEnter -> continue $ show' $ s & isEditing %~ not
+        KLeft  -> continue $ updateFocusOrViewport s _2 0 (-1)
         KRight -> continue $
-            updateFocusOrViewport s _2 (s ^. env . port . size . _2 - 1) 1
-        KUp    -> continue $
-            updateFocusOrViewport s _1 0 (-1)
+            updateFocusOrViewport s _2 (s^.env.port.size._2 - 1) 1
+        KUp    -> continue $ updateFocusOrViewport s _1 0 (-1)
         KDown  -> continue $
-            updateFocusOrViewport s _1 (s ^. env . port . size . _1 - 1) 1
+            updateFocusOrViewport s _1 (s^.env.port.size._1 - 1) 1
         _      -> continue s
-handleEvent s (VtyEvent e@(EvResize x y))
-    = continue (show' (resize s (x, y)))
+handleEvent s (VtyEvent e@(EvResize x y)) = continue $ show' $ resize s (x, y)
 handleEvent s _ = continue s
 
 resize :: State -> (Int, Int) -> State
 resize s (x, y) = s & focusRing' .~ focusRing (Data.Array.indices newEditors)
                     & widgets .~ newEditors
-                    & env . port .~ newPort
-    where
-        newEditors = editors newPort
-        newPort = (s ^. env . port) & size . _1 .~ (y `quot` 2) - 1
+                    & env.port .~ newPort
+  where
+    newEditors = editors newPort
+    newPort = (s^.env.port) & size._1 .~ (y `quot` 2) - 1
 
 updateFocusOrViewport :: State -> Lens Position Position Int Int -> Int -> Int -> State
 updateFocusOrViewport s lens check i
     | check == 0 && s ^. env . port . position . lens == 0
     = s
-    | s ^. focusRing' ^. focus ^. lens == check
-    = show' $ s & env . port . position . lens +~ i
+    | s^.focusRing'.focus.lens == check
+    = show' $ s & env.port.position.lens +~ i
     | otherwise
-    = s & focusRing' . focus . lens +~ i
+    = s & focusRing'.focus.lens +~ i
 
 -- | The attribute map that should be used during rendering.
 -- This determines how widgets with a certain attribute (name) look.

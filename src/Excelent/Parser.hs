@@ -38,11 +38,11 @@ addition :: ExprParser
 addition = try (Plus <$> primary <* symbol style "+" <*> addition) <|> primary
 
 primary :: ExprParser
-primary = try refRel <|>
-    try refAbs <|>
-    try constF <|>
-    try constI <|>
-    (Empty <$ eof)
+primary = try refRel
+    <|> try refAbs
+    <|> try constF
+    <|> try constI
+    <|> (Empty <$ eof)
 
 refAbs :: ExprParser
 refAbs = RefAbs <$> between (symbol style "(") (symbol style ")") intTuple

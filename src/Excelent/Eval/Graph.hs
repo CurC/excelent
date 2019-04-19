@@ -39,31 +39,30 @@ node = cata graphAlg
 -- | Initialize the environment by generating the graph, checking for any
 -- existing cycles and inserting type errors where relevant.
 initializeGraph :: Excel ()
-initializeGraph
-    = do
-        env <- get
-        let forms        = M.toList (env ^. formulas)
-        let positions    = map fst forms
-        put (env & graph .~ initGraph forms)
-        checkErrors positions
+initializeGraph = do
+    env <- get
+    let forms = M.toList (env^.formulas)
+    let positions = map fst forms
+    put $ env & graph .~ initGraph forms
+    checkErrors positions
 
 -- | Generate the base dependency graph based on each expressions in the given
 -- cells
 initGraph :: [(Position, Expr)] -> NodeGraph
-initGraph = foldr (\(pos, exp) g -> GA.overlay (node exp pos) g) GA.empty
+initGraph = foldr (\(pos, expr) g -> GA.overlay (node expr pos) g) GA.empty
 
 -- | Recalculates the graph given that the expression at the position changed
 -- and also returns the cells that need to be recalculated
 changeCell :: Position -> Expr -> Excel [Position]
-changeCell p exp = do
+changeCell p expr = do
     env <- get
-    let new           = node exp p
-    let next          = GA.postSet p (env ^. graph)
-    let removed       = S.foldr (GA.removeEdge p) (env ^. graph) next
-    let newGraph      = GA.overlay removed new
-    let toRecalculate = dfs [p] (GA.transpose $ env ^. graph)
-    put (env & graph .~ newGraph)
-    return (p : toRecalculate)
+    let new = node expr p
+    let next = GA.postSet p $ env^.graph
+    let removed = S.foldr (GA.removeEdge p) (env^.graph) next
+    let newGraph = GA.overlay removed new
+    let toRecalculate = dfs [p] $ GA.transpose $ env^.graph
+    put $ env & graph .~ newGraph
+    return $ p:toRecalculate
 
 type Cycles = S.Set Position
 type CycleReferences = S.Set Position
@@ -72,7 +71,7 @@ type CycleReferences = S.Set Position
 checkErrors :: [Position] -> Excel ()
 checkErrors positions = do
     env <- get
-    let cycles    = getCycles env
+    let cycles = getCycles env
     let cycleRefs = getCycleRefs (env ^. graph) cycles
     mapM_ (insertErrors cycles cycleRefs) positions
 
@@ -80,40 +79,38 @@ insertErrors :: Cycles -> CycleReferences -> Position -> Excel ()
 insertErrors cycles cycleRefs pos = do
     env <- get
     if S.member pos cycleRefs
-        then if S.member pos cycles
-            then put $ env & view %~ M.insert pos cycleError
-            else put $ env & view %~ M.insert pos cycleRefError
+        then put $ env & view %~ M.insert pos
+            (if S.member pos cycles then cycleError else cycleRefError)
         else do
-            _ <- checkType (fromMaybe Empty (M.lookup pos (env ^. formulas)))
-                    pos
+            checkType (fromMaybe Empty $ M.lookup pos $ env^.formulas) pos
             return ()
 
 -- | Insert the expression at the given position and update any relevant cells
 insertAndEvalGraph :: Position -> Expr -> Excel ()
-insertAndEvalGraph pos expr
-    = do
-    modify (\env -> env & formulas %~ M.insert pos expr)
+insertAndEvalGraph pos expr = do
+    modify $ formulas %~ M.insert pos expr
     toRecalculate <- changeCell pos expr
     invalidateView toRecalculate
     checkErrors toRecalculate
     mapM_ evalCell toRecalculate
 
 getCycleRefs :: NodeGraph -> Cycles -> CycleReferences
-getCycleRefs graph = foldr (\cyc refs ->
-        S.union refs (S.fromList (GAA.reachable cyc transposed))) S.empty
-    where
-        transposed = GA.transpose graph
+getCycleRefs graph = foldr f S.empty
+  where
+    f cyc refs = S.union refs
+        $ S.fromList
+        $ GAA.reachable cyc
+        $ GA.transpose graph
 
 -- | Returns the positions involved in a cycle
 getCycles :: Env -> Cycles
-getCycles env = S.fromList poss
-    where
-        poss = concatMap onlyCycles cyclicGraphs
-        cyclicGraphs = GA.vertexList (GAA.scc $ env ^. graph)
-        onlyCycles = (\l ->
-            if length l > 1 || GA.hasEdge (head l) (head l) (env ^. graph)
-                then l
-                else []) . toList . GNA.vertexList1
+getCycles env = S.fromList $ concatMap onlyCycles cyclicGraphs
+  where
+    cyclicGraphs = GA.vertexList $ GAA.scc $ env^.graph
+    f xs@(_:_:_)                             = xs
+    f xs@(x:_) | GA.hasEdge x x (env^.graph) = xs
+    f _                                      = []
+    onlyCycles = f . toList . GNA.vertexList1
 
 cycleError :: ViewValue
 cycleError = Left (Error "Cycle detected")
